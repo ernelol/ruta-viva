@@ -72,3 +72,21 @@ compile.
 
 **Se aceptó / corrigió:** aceptado el código final (ya con la corrección), tests
 corridos y en verde (`.venv/bin/pytest`, 14 passed).
+
+---
+
+### 2026-10-27 — ETICA.md: buscar el marco legal real
+
+**Se pidió:** buscar y leer la Ley 18.331 (datos personales) y una ley de
+accesibilidad de Uruguay antes de citarlas en `ETICA.md`, en vez de citarlas de
+memoria.
+
+**Devolvió:** resumen de la Ley 18.331 (principios, URCDP como órgano de control) y de
+la Ley 18.651 de protección integral de personas con discapacidad (arts. 68-69,
+normas UNIT de accesibilidad) — ambas con fuentes. Con eso escribió `ETICA.md`
+completo, conectando el art. 68-69 de la 18.651 con la decisión de diseño de que
+`es_accesible` sea un filtro duro.
+
+**Se aceptó / corrigió:** aceptado el contenido; falta que alguien del equipo (en este
+caso, vos) lea el texto de las leyes citadas, no solo los resúmenes de la IA, antes de
+dar esto por cerrado para la entrega final.
