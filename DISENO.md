@@ -24,6 +24,8 @@ classDiagram
     class Lugar {
         <<abstract>>
         +nombre: str
+        +x: float
+        +y: float
         +duracion_visita: int
         +costo: float
         +es_accesible: bool
@@ -119,6 +121,11 @@ classDiagram
   igual que las estrategias de boxes del práctico de F1.** Hoy hay una sola
   implementación (`MinimaCaminata`), pero el enunciado pide que cambiar el criterio no
   toque el algoritmo — así que vive separado de `Planificador` desde el día uno.
+- **`Lugar` tiene `x`/`y` (un plano inventado, no GPS real).** Necesario para que
+  `Planificador` pueda calcular la distancia entre dos lugares y decidir el tramo — sin
+  esto `TramoRuta` no tendría de dónde sacar los metros. No se agregó al diagrama
+  original; se sumó al escribir el código y se corrige acá para que el UML siga
+  coincidiendo con lo implementado.
 - **`es_accesible` en `Lugar` es un filtro duro, no parte del puntaje.** Un lugar no
   accesible se descarta antes de puntuar, no se penaliza y listo — porque para esta
   variante "inaccesible" no es "peor", es "no sirve". Esto después tiene que aparecer

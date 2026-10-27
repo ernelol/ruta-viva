@@ -50,3 +50,25 @@ variar nombres de categorías genéricas (museo/plaza/mirador/restaurante, que c
 grupo pondría igual).
 
 **Se aceptó / corrigió:** aceptado.
+
+---
+
+### 2026-10-27 — Hito 2: código del núcleo + primeros tests
+
+**Se pidió:** implementar las clases del diseño (`Lugar` y sus 5 subtipos, `Momento`,
+`TramoRuta`, `Recorrido`, `CriterioDeCalidad`, `Planificador`) solo con librería estándar,
+más tests de pytest para cada módulo.
+
+**Devolvió:** el paquete `ruta_viva/` completo y 14 tests, todos verdes.
+
+**Error real encontrado:** al escribir `Planificador`, la IA declaró
+`catalogo: list[Lugar]` dentro de un `@dataclass(frozen=True)`. Esto es inconsistente
+con el propio argumento de inmutabilidad que la IA había escrito para `Recorrido.paradas`
+(ahí sí usó `tuple`, explicando que una lista en un dataclass frozen igual se puede mutar
+con `.append()` por dentro). Se dio cuenta ella misma al releer el archivo, sin que se le
+señalara, y lo corrigió a `tuple[Lugar, ...]` antes de correr los tests. Queda como
+ejemplo real de que hay que revisar la consistencia de lo que la IA genera, no solo que
+compile.
+
+**Se aceptó / corrigió:** aceptado el código final (ya con la corrección), tests
+corridos y en verde (`.venv/bin/pytest`, 14 passed).
