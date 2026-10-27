@@ -18,3 +18,20 @@ mínima caminata), conectándola con el riesgo ético que ya sugiere el propio e
 
 **Se aceptó / corrigió:** se aceptó tal cual — todavía no hay código para encontrar un
 error real; se va a completar esta bitácora a medida que avance el proyecto.
+
+---
+
+### 2026-10-27 — Primera propuesta de clases (Hito 1)
+
+**Se pidió:** después de leer el práctico de UML del curso (notación y los dos
+ejercicios resueltos), proponer las clases de Ruta viva con la variante ya elegida.
+
+**Devolvió:** `Lugar` (abstracta, 4 subtipos), `Momento` inmutable inyectado,
+`TramoRuta` (a pie / en transporte, jerarquía separada de `Lugar`), `Parada` (asociación
+con Lugar, composición con TramoRuta), `Recorrido` (compone Paradas), `CriterioDeCalidad`
+como Estrategia, y `Planificador`. Decidió por su cuenta no modelar `Visitante` como
+clase (sino como parámetros de `Planificador`), razonando que la variante es fija.
+
+**Se aceptó / corrigió:** pendiente de revisar en conjunto — queda abierto si
+`Visitante` como clase aparte conviene más de cara al cambio de requisito del Hito 2
+(todavía no asignado).
