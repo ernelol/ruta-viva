@@ -35,3 +35,18 @@ clase (sino como parámetros de `Planificador`), razonando que la variante es fi
 **Se aceptó / corrigió:** pendiente de revisar en conjunto — queda abierto si
 `Visitante` como clase aparte conviene más de cara al cambio de requisito del Hito 2
 (todavía no asignado).
+
+---
+
+### 2026-10-27 — Quinto tipo de lugar, a pedido de "hacelo diferente"
+
+**Se pidió:** confirmados los 4 tipos de lugar, pero con la consigna de pensar qué
+haría el diseño distinto al de otros grupos, no solo técnicamente correcto.
+
+**Devolvió:** agregar `ParadaDeDescanso` como quinto subtipo de `Lugar` — sin atractivo
+turístico, siempre disponible, pensado explícitamente para la variante de movilidad
+reducida. Razonó que un tipo de lugar ligado directamente a la variante pesa más que
+variar nombres de categorías genéricas (museo/plaza/mirador/restaurante, que cualquier
+grupo pondría igual).
+
+**Se aceptó / corrigió:** aceptado.

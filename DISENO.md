@@ -33,10 +33,12 @@ classDiagram
     class Plaza
     class Mirador
     class Restaurante
+    class ParadaDeDescanso
     Lugar <|-- Museo
     Lugar <|-- Plaza
     Lugar <|-- Mirador
     Lugar <|-- Restaurante
+    Lugar <|-- ParadaDeDescanso
 
     class Momento {
         <<inmutable>>
@@ -88,10 +90,16 @@ classDiagram
 
 ### Decisiones de diseño
 
-- **`Lugar` es abstracta, con 4 subtipos concretos (polimorfismo).** Cada subtipo decide
+- **`Lugar` es abstracta, con 5 subtipos concretos (polimorfismo).** Cada subtipo decide
   distinto cuándo está disponible (`esta_disponible(momento)`): un Mirador puede no
   valer la pena si llueve, un Museo tiene horario fijo. Agregar un tipo de lugar nuevo no
   toca el resto del programa (cumple la restricción del enunciado).
+- **`ParadaDeDescanso` es el quinto tipo, y es el que distingue esta variante.** No es un
+  atractivo turístico — es un banco o baño accesible para parar entre lugares. Sin
+  horario, sin costo, siempre disponible (`esta_disponible` devuelve `True` siempre), a
+  diferencia de los otros cuatro. No es una variación más del mismo patrón: es un tipo de
+  lugar que solo tiene sentido si la variante es, de verdad, movilidad reducida — y le da
+  contenido real a `ETICA.md` en vez de una mención de compromiso.
 - **`Momento` es inmutable y se inyecta, nunca se lee del reloj del sistema.** Así el
   cálculo es reproducible: correr el mismo recorrido dos veces con el mismo `Momento` da
   el mismo resultado, y se puede probar un mediodía lluvioso sin esperar a que llueva.
