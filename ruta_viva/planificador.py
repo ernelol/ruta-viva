@@ -1,10 +1,12 @@
-"""Arma un recorrido candidato a partir de un catálogo de lugares, y elige el mejor
-candidato según un CriterioDeCalidad.
+"""Arma recorridos candidatos a partir de un catálogo de lugares, y elige el mejor según
+un CriterioDeCalidad.
 
-No busca el recorrido óptimo (el enunciado explícitamente no lo pide) — usa un criterio
-simple y explicable: desde el punto de partida, visita siempre el lugar disponible y
-accesible más cercano, mientras entre en el tiempo disponible."""
+No busca el recorrido óptimo (el enunciado explícitamente no lo pide): arma un candidato
+por cada lugar disponible que se podría visitar primero (desde ahí, siempre sigue al más
+cercano), y deja que el criterio elija entre esos candidatos — simple, explicable, y
+fácil de cambiar sin tocar el resto."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from .criterios import CriterioDeCalidad
@@ -31,13 +33,21 @@ def _lugares_disponibles(catalogo: tuple[Lugar, ...], momento: Momento) -> list[
     return [lugar for lugar in catalogo if lugar.es_accesible and lugar.esta_disponible(momento)]
 
 
-def armar_candidato(
-    partida: Lugar, catalogo: tuple[Lugar, ...], momento: Momento, tiempo_disponible_min: int
+def _armar_desde(
+    partida: Lugar, primer_lugar: Lugar, catalogo: tuple[Lugar, ...], momento: Momento,
+    tiempo_disponible_min: int,
 ) -> Recorrido:
-    restantes = _lugares_disponibles(catalogo, momento)
-    paradas: list[Parada] = []
-    actual = partida
-    tiempo_usado = 0
+    """Arma un recorrido que visita primero `primer_lugar`, y desde ahí sigue siempre
+    al lugar disponible más cercano, mientras entre en el tiempo disponible."""
+    tramo_inicial = _tramo_hacia(partida, primer_lugar)
+    duracion_inicial = tramo_inicial.duracion_min() + primer_lugar.duracion_visita_min
+    if duracion_inicial > tiempo_disponible_min:
+        return Recorrido(momento_inicio=momento, paradas=())
+
+    paradas: list[Parada] = [Parada(lugar=primer_lugar, tramo=tramo_inicial)]
+    tiempo_usado = duracion_inicial
+    actual = primer_lugar
+    restantes = [lugar for lugar in _lugares_disponibles(catalogo, momento) if lugar != primer_lugar]
 
     while restantes:
         siguiente = min(restantes, key=lambda lugar: _distancia_m(actual, lugar))
@@ -53,7 +63,28 @@ def armar_candidato(
     return Recorrido(momento_inicio=momento, paradas=tuple(paradas))
 
 
-def elegir_mejor(candidatos: list[Recorrido], criterio: CriterioDeCalidad) -> Recorrido:
+def armar_candidato(
+    partida: Lugar, catalogo: tuple[Lugar, ...], momento: Momento, tiempo_disponible_min: int
+) -> Recorrido:
+    """El candidato que arranca por el lugar disponible más cercano a la partida."""
+    disponibles = _lugares_disponibles(catalogo, momento)
+    if not disponibles:
+        return Recorrido(momento_inicio=momento, paradas=())
+    primer_lugar = min(disponibles, key=lambda lugar: _distancia_m(partida, lugar))
+    return _armar_desde(partida, primer_lugar, catalogo, momento, tiempo_disponible_min)
+
+
+def candidatos_posibles(
+    partida: Lugar, catalogo: tuple[Lugar, ...], momento: Momento, tiempo_disponible_min: int
+) -> Iterator[Recorrido]:
+    """Un candidato por cada lugar disponible que se podría visitar primero — evaluación
+    perezosa: cada candidato se arma recién cuando algo lo pide (por ejemplo,
+    elegir_mejor los va consumiendo de a uno con max()), no todos de antemano."""
+    for primer_lugar in _lugares_disponibles(catalogo, momento):
+        yield _armar_desde(partida, primer_lugar, catalogo, momento, tiempo_disponible_min)
+
+
+def elegir_mejor(candidatos: Iterator[Recorrido], criterio: CriterioDeCalidad) -> Recorrido:
     return max(candidatos, key=criterio.puntuar)
 
 
@@ -63,5 +94,5 @@ class Planificador:
     criterio: CriterioDeCalidad
 
     def planificar(self, partida: Lugar, momento: Momento, tiempo_disponible_min: int) -> Recorrido:
-        candidato = armar_candidato(partida, self.catalogo, momento, tiempo_disponible_min)
-        return elegir_mejor([candidato], self.criterio)
+        candidatos = candidatos_posibles(partida, self.catalogo, momento, tiempo_disponible_min)
+        return elegir_mejor(candidatos, self.criterio)

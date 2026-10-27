@@ -117,6 +117,16 @@ classDiagram
   candidato, sus paradas desaparecen con él — no se comparten entre recorridos.
   `metros_caminados_total()` no se guarda como atributo: se calcula sumando los tramos
   cada vez, para que no pueda quedar un número viejo si cambia algo (inmutabilidad).
+- **`Planificador.planificar()` explora varios candidatos, no uno solo.** La primera
+  versión armaba un único recorrido (el que arranca por el lugar más cercano a la
+  partida) y `elegir_mejor()` no tenía entre qué elegir de verdad. Se cambió a
+  `candidatos_posibles()`, un generador que arma un candidato por cada lugar disponible
+  que se podría visitar primero — recién ahí `elegir_mejor()` compara candidatos reales.
+  Es además la evaluación perezosa que pide el enunciado: los candidatos se arman uno a
+  uno a medida que `max()` los va pidiendo, no todos de antemano. Con un catálogo de
+  prueba simple, explorar varios candidatos bajó la caminata de 320m a 20m frente a
+  arrancar siempre por el más cercano — la prueba de que no era una complicación
+  gratuita (`tests/test_planificador.py`).
 - **`CriterioDeCalidad` es una interfaz con una sola responsabilidad (patrón Estrategia),
   igual que las estrategias de boxes del práctico de F1.** Hoy hay una sola
   implementación (`MinimaCaminata`), pero el enunciado pide que cambiar el criterio no

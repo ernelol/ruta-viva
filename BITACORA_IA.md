@@ -90,3 +90,21 @@ completo, conectando el art. 68-69 de la 18.651 con la decisión de diseño de q
 **Se aceptó / corrigió:** aceptado el contenido; falta que alguien del equipo (en este
 caso, vos) lea el texto de las leyes citadas, no solo los resúmenes de la IA, antes de
 dar esto por cerrado para la entrega final.
+
+---
+
+### 2026-10-27 — Planificador: de un candidato a varios, con evaluación perezosa
+
+**Se pidió (trabajando de forma autónoma, sin frenar a preguntar salvo algo
+importante):** revisar si faltaba algo del enunciado en el núcleo ya escrito.
+
+**Devolvió:** notó que `Planificador` solo armaba un único candidato y que
+`elegir_mejor()` nunca comparaba nada de verdad — y que no había ningún uso real de
+evaluación perezosa, pese a que el enunciado la pide. Refactorizó a
+`candidatos_posibles()` (un generador: un candidato por cada posible primer lugar) +
+`elegir_mejor()` consumiéndolo con `max()`. Verificó con un catálogo de prueba que
+explorar varios candidatos realmente encuentra menos caminata (320m → 20m) antes de
+dar el cambio por bueno, y lo dejó como test (`test_explorar_varios_candidatos...`).
+
+**Se aceptó / corrigió:** aceptado, con los 16 tests corridos y en verde después del
+cambio (antes eran 14).
