@@ -25,3 +25,21 @@ más que 60. Espero que entren **2 paradas**, con 46 minutos usados.
 **Resultado real:** 2 paradas (Lugar 1, Lugar 2), 46 minutos usados.
 
 **¿Coincidió?:** Sí, exacto.
+
+---
+
+## Planificador.planificar(partida=(0,0)) con A=(300,0), B=(900,0), C=(920,0)
+
+**Predicción:** el candidato ingenuo (arranca por el más cercano a la partida, que es A)
+va a caminar mucho: partida→A son 300m a pie, A→B son 600m en transporte (0m caminados),
+B→C son 20m a pie. Total: 320m caminados. Si en cambio se arranca por B o por C, el
+tramo largo (partida→B o partida→C, ~900m) se hace en transporte una sola vez, y B↔C↔A
+quedan casi todos a pie y cortos. Espero que arrancar por B dé bastante menos de 320m
+caminados — una diferencia grande, no un par de metros.
+
+**Resultado real:** ingenuo (arranca por A): 320m. Mejor candidato (arranca por B):
+**20m**.
+
+**¿Coincidió?:** Sí, y la diferencia fue más grande de lo que esperaba (320m → 20m, no
+"bastante menos" sino 16 veces menos) — confirma que explorar varios candidatos no es
+una complicación cosmética, cambia el resultado de verdad.
