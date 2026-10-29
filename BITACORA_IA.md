@@ -108,3 +108,19 @@ dar el cambio por bueno, y lo dejó como test (`test_explorar_varios_candidatos.
 
 **Se aceptó / corrigió:** aceptado, con los 16 tests corridos y en verde después del
 cambio (antes eran 14).
+
+---
+
+### 2026-10-29 — Simplificar: sacar código redundante
+
+**Se pidió:** que todo el código (y el proyecto en general) sea lo más simple posible.
+
+**Devolvió:** encontró que `armar_candidato()` había quedado sin uso real después del
+cambio anterior (candidatos múltiples con `candidatos_posibles()`) — `Planificador.
+planificar()` ya no la llamaba, solo dos tests. Dos funciones casi iguales conviviendo
+no es simple, es confuso. La borró y reescribió esos tests contra `candidatos_posibles()`
+directo, más uno nuevo que prueba la afirmación real ("empezar por un lugar u otro da
+resultados distintos") sin depender del orden interno de iteración.
+
+**Se aceptó / corrigió:** aceptado, 20 tests siguen en verde y `ejemplo.py` sigue dando
+el mismo tipo de resultado.

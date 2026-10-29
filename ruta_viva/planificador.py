@@ -63,17 +63,6 @@ def _armar_desde(
     return Recorrido(momento_inicio=momento, paradas=tuple(paradas))
 
 
-def armar_candidato(
-    partida: Lugar, catalogo: tuple[Lugar, ...], momento: Momento, tiempo_disponible_min: int
-) -> Recorrido:
-    """El candidato que arranca por el lugar disponible más cercano a la partida."""
-    disponibles = _lugares_disponibles(catalogo, momento)
-    if not disponibles:
-        return Recorrido(momento_inicio=momento, paradas=())
-    primer_lugar = min(disponibles, key=lambda lugar: _distancia_m(partida, lugar))
-    return _armar_desde(partida, primer_lugar, catalogo, momento, tiempo_disponible_min)
-
-
 def candidatos_posibles(
     partida: Lugar, catalogo: tuple[Lugar, ...], momento: Momento, tiempo_disponible_min: int
 ) -> Iterator[Recorrido]:
