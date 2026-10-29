@@ -1,4 +1,11 @@
-from ruta_viva import TramoAPie, TramoEnTransporte
+import pytest
+
+from ruta_viva import TramoAPie, TramoEnTransporte, TramoRuta
+
+
+def test_tramo_ruta_no_se_puede_instanciar_directo():
+    with pytest.raises(TypeError):
+        TramoRuta()
 
 
 def test_tramo_a_pie_cuenta_los_metros():

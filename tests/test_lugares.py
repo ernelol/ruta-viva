@@ -1,6 +1,8 @@
+import dataclasses
+
 import pytest
 
-from ruta_viva import Clima, Franja, Lugar, Mirador, Momento, Museo, ParadaDeDescanso, Plaza
+from ruta_viva import Clima, Franja, Lugar, Mirador, Momento, Museo, ParadaDeDescanso, Plaza, Restaurante
 
 
 def test_lugar_no_se_puede_instanciar_directo():
@@ -35,3 +37,23 @@ def test_plaza_y_parada_de_descanso_siempre_disponibles():
     ):
         assert plaza.esta_disponible(momento) is True
         assert descanso.esta_disponible(momento) is True
+
+
+def test_restaurante_disponible_solo_en_su_horario():
+    restaurante = Restaurante(
+        nombre="Mercado del Puerto", x=0, y=0, duracion_visita_min=60, costo=400, es_accesible=True,
+        horario_apertura=Franja.MANIANA, horario_cierre=Franja.NOCHE,
+    )
+    assert restaurante.esta_disponible(Momento(Franja.NOCHE, Clima.SOLEADO)) is True
+
+
+def test_lugar_es_inmutable():
+    plaza = Plaza(nombre="Plaza", x=0, y=0, duracion_visita_min=15, costo=0, es_accesible=True)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        plaza.costo = 999
+
+
+def test_momento_es_inmutable():
+    momento = Momento(franja=Franja.MANIANA, clima=Clima.SOLEADO)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        momento.clima = Clima.LLUVIA
