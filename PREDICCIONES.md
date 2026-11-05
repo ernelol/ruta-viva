@@ -43,3 +43,9 @@ caminados — una diferencia grande, no un par de metros.
 **¿Coincidió?:** Sí, y la diferencia fue más grande de lo que esperaba (320m → 20m, no
 "bastante menos" sino 16 veces menos) — confirma que explorar varios candidatos no es
 una complicación cosmética, cambia el resultado de verdad.
+
+**Nota (2026-11-05):** esta versión de "explorar varios candidatos" se sacó después
+por ser más complicada de lo necesario (ver `BITACORA_IA.md`). Con el diseño actual,
+este mismo escenario daría 320m siempre (el criterio decide paso a paso, no compara
+recorridos completos) — queda la predicción de entonces como historial, no como el
+comportamiento de hoy.

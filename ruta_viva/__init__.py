@@ -1,7 +1,7 @@
 from .criterios import CriterioDeCalidad, MinimaCaminata
 from .lugares import Lugar, Mirador, Museo, ParadaDeDescanso, Plaza, Restaurante
 from .momento import Clima, Franja, Momento
-from .planificador import Planificador, candidatos_posibles, elegir_mejor
+from .planificador import Planificador
 from .recorrido import Parada, Recorrido
 from .tramos import TramoAPie, TramoEnTransporte, TramoRuta
 
@@ -18,8 +18,6 @@ __all__ = [
     "Franja",
     "Momento",
     "Planificador",
-    "candidatos_posibles",
-    "elegir_mejor",
     "Parada",
     "Recorrido",
     "TramoAPie",

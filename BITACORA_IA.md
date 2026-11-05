@@ -124,3 +124,53 @@ resultados distintos") sin depender del orden interno de iteración.
 
 **Se aceptó / corrigió:** aceptado, 20 tests siguen en verde y `ejemplo.py` sigue dando
 el mismo tipo de resultado.
+
+---
+
+### 2026-10-29 — Visualización de casos de prueba
+
+**Se pidió:** algo visual que muestre los casos de prueba y cómo decide el
+Planificador, para verlo de un vistazo.
+
+**Devolvió:** `visualizar.py` corre 6 escenarios reales con el programa (sin
+inventar resultados — usa `Planificador.planificar()` de verdad) y genera
+`visualizacion.html`: un mapa con los lugares en su posición x/y, la ruta elegida
+dibujada encima (línea sólida = a pie, punteada = transporte), y los lugares
+descartados en gris con el motivo (no accesible / no disponible / no entró por
+tiempo). Abre con doble clic, no necesita servidor.
+
+**Se aceptó / corrigió:** se verificaron los datos generados contra lo que ya
+habíamos visto corriendo el programa a mano antes de darlo por bueno (mismos
+metros, mismas paradas). `visualizacion.html` queda afuera de git (es generado,
+no código fuente) — solo se suben `visualizar.py` y la plantilla.
+
+---
+
+### 2026-11-05 — Corrección grande: se había complicado de más
+
+**Se pidió:** el usuario marcó que el código estaba demasiado complicado — "mataste el
+mosquito con la bomba atómica" varias veces — y que se estaban usando técnicas de
+Python ("funciones y cosas que ni los profesores conocen") más allá de lo que el curso
+realmente enseña. Pidió simplificar todo, código y diseño en general.
+
+**El diagnóstico real:** la parte más compleja (`candidatos_posibles()` como
+generador, `elegir_mejor()` separado, armar varios recorridos completos para
+comparar) la había agregado la IA por su cuenta, en una sesión donde se le dijo "hacé
+todo vos, no preguntes salvo algo importante" — no fue pedida, fue una mejora
+autoiniciada que sumó capas sin que nadie la necesitara.
+
+**Devolvió:** rediseñó `Planificador` para que decida en cada paso (`CriterioDeCalidad.
+elegir_siguiente(actual, disponibles)` elige el próximo lugar directamente), sin armar
+recorridos completos para comparar ni generadores. Un solo loop, una sola clase para el
+planificador. Resultado: mismo comportamiento observable (sigue respetando tiempo,
+descartando no accesibles), bastante menos código, API más fácil de explicar.
+
+**Lo que no se pudo verificar todavía:** no hay acceso a los materiales reales de
+"POO Fundamentos" ni "Programación Funcional" del curso (solo se leyó el práctico de
+UML) — la simplificación de acá se basó en sentido común, no en confirmar el nivel
+exacto que dan las clases. Queda pendiente bajar esos PDFs del curso y revisar si algo
+más (por ejemplo el uso de `ABC`/`@abstractmethod`) está por encima de lo visto en
+clase.
+
+**Se aceptó / corrigió:** aceptado el rediseño; 18 tests en verde (antes 20 — se
+sacaron 2 que ya no aplicaban a la API vieja, no porque fallaran).

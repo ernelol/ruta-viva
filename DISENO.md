@@ -78,7 +78,7 @@ classDiagram
 
     class CriterioDeCalidad {
         <<abstract>>
-        +puntuar(recorrido) float*
+        +elegir_siguiente(actual, disponibles) Lugar*
     }
     class MinimaCaminata
     CriterioDeCalidad <|-- MinimaCaminata
@@ -117,20 +117,19 @@ classDiagram
   candidato, sus paradas desaparecen con él — no se comparten entre recorridos.
   `metros_caminados_total()` no se guarda como atributo: se calcula sumando los tramos
   cada vez, para que no pueda quedar un número viejo si cambia algo (inmutabilidad).
-- **`Planificador.planificar()` explora varios candidatos, no uno solo.** La primera
-  versión armaba un único recorrido (el que arranca por el lugar más cercano a la
-  partida) y `elegir_mejor()` no tenía entre qué elegir de verdad. Se cambió a
-  `candidatos_posibles()`, un generador que arma un candidato por cada lugar disponible
-  que se podría visitar primero — recién ahí `elegir_mejor()` compara candidatos reales.
-  Es además la evaluación perezosa que pide el enunciado: los candidatos se arman uno a
-  uno a medida que `max()` los va pidiendo, no todos de antemano. Con un catálogo de
-  prueba simple, explorar varios candidatos bajó la caminata de 320m a 20m frente a
-  arrancar siempre por el más cercano — la prueba de que no era una complicación
-  gratuita (`tests/test_planificador.py`).
+- **`Planificador.planificar()` es un solo loop que le pregunta al criterio, paso a
+  paso, cuál es el próximo lugar.** No arma un recorrido completo para después
+  compararlo con otros — en cada parada, `CriterioDeCalidad.elegir_siguiente(actual,
+  disponibles)` decide directamente cuál visitar después. Es el criterio simple y fácil
+  de cambiar que pide el enunciado ("no se pide el recorrido óptimo"). (Hubo una versión
+  anterior que armaba varios recorridos completos con un generador para elegir el
+  mejor entre todos — se sacó por ser más complicada de lo que hacía falta; queda el
+  motivo en `BITACORA_IA.md`.)
 - **`CriterioDeCalidad` es una interfaz con una sola responsabilidad (patrón Estrategia),
   igual que las estrategias de boxes del práctico de F1.** Hoy hay una sola
-  implementación (`MinimaCaminata`), pero el enunciado pide que cambiar el criterio no
-  toque el algoritmo — así que vive separado de `Planificador` desde el día uno.
+  implementación (`MinimaCaminata`, que elige siempre el lugar disponible más cercano),
+  pero el enunciado pide que cambiar el criterio no toque el algoritmo — así que vive
+  separado de `Planificador` desde el día uno.
 - **`Lugar` tiene `x`/`y` (un plano inventado, no GPS real).** Necesario para que
   `Planificador` pueda calcular la distancia entre dos lugares y decidir el tramo — sin
   esto `TramoRuta` no tendría de dónde sacar los metros. No se agregó al diagrama
@@ -151,6 +150,7 @@ classDiagram
   movilidad reducida), así que sus parámetros (tiempo disponible, si necesita transporte
   accesible) entran como argumentos de `Planificador` en vez de un objeto aparte. Se
   puede revisar si el cambio de requisito del Hito 2 lo justifica.
-- **Guardar el puntaje dentro de `Recorrido`:** se descartó — puntuar es responsabilidad
-  de `CriterioDeCalidad`, no del recorrido mismo (si no, agregar un criterio nuevo
-  obligaría a tocar `Recorrido`).
+- **Comparar recorridos completos ya armados (puntuar cada uno y quedarse con el
+  mejor):** se probó y se descartó por complicar de más algo simple — necesitaba armar
+  varios recorridos candidatos antes de poder elegir. La versión actual decide en cada
+  paso, no al final, y da un algoritmo mucho más corto y fácil de explicar.

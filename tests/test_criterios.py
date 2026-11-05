@@ -1,15 +1,15 @@
-from ruta_viva import Clima, Franja, MinimaCaminata, Momento, Parada, Plaza, Recorrido, TramoAPie
+from ruta_viva import MinimaCaminata, Plaza
 
 
-def _recorrido_con(metros: int) -> Recorrido:
-    plaza = Plaza(nombre="Plaza", x=0, y=0, duracion_visita_min=15, costo=0, es_accesible=True)
-    paradas = (Parada(lugar=plaza, tramo=TramoAPie(distancia_m=metros)),)
-    return Recorrido(momento_inicio=Momento(Franja.MANIANA, Clima.SOLEADO), paradas=paradas)
+def _plaza(nombre: str, x: float, y: float) -> Plaza:
+    return Plaza(nombre=nombre, x=x, y=y, duracion_visita_min=15, costo=0, es_accesible=True)
 
 
-def test_minima_caminata_prefiere_menos_metros():
-    criterio = MinimaCaminata()
-    corto = _recorrido_con(100)
-    largo = _recorrido_con(900)
+def test_minima_caminata_elige_el_mas_cercano():
+    actual = _plaza("Actual", 0, 0)
+    cercano = _plaza("Cercano", 100, 0)
+    lejano = _plaza("Lejano", 900, 0)
 
-    assert criterio.puntuar(corto) > criterio.puntuar(largo)
+    siguiente = MinimaCaminata().elegir_siguiente(actual, [lejano, cercano])
+
+    assert siguiente is cercano
