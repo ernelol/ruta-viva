@@ -184,12 +184,11 @@ class CriterioDeCalidad(ABC):
 
 
 class MinimaCaminata(CriterioDeCalidad):
+    """Va siempre al lugar más cercano. Si queda a más de 400 m se va en transporte, así
+    nunca se caminan más de 400 m seguidos y el recorrido no da vueltas por la ciudad."""
+
     def elegir_siguiente(self, actual, disponibles):
-        # el que obliga a caminar menos; si empatan, el más cercano
-        return min(
-            disponibles,
-            key=lambda lugar: (tramo_entre(actual, lugar).metros_caminados(), distancia(actual, lugar)),
-        )
+        return min(disponibles, key=lambda lugar: distancia(actual, lugar))
 
     def costo(self, recorrido):
         return recorrido.metros_caminados_total()

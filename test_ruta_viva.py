@@ -120,10 +120,9 @@ def test_agregar_parada_no_modifica_el_original():
 
 # ---------- Criterio ----------
 
-def test_minima_caminata_prefiere_no_caminar_y_desempata_por_cercania():
+def test_minima_caminata_va_al_mas_cercano():
     actual = plaza("Actual", 0)
-    a_pie, cerca, lejos = plaza("A pie", 300), plaza("Cerca", 500), plaza("Lejos", 900)
-    assert MinimaCaminata().elegir_siguiente(actual, [a_pie, lejos]) is lejos
+    cerca, lejos = plaza("Cerca", 300), plaza("Lejos", 900)
     assert MinimaCaminata().elegir_siguiente(actual, [lejos, cerca]) is cerca
 
 
@@ -147,10 +146,11 @@ def test_respeta_el_tiempo_disponible():
     assert len(recorrido.paradas) < len(catalogo)
 
 
-def test_evita_caminar_si_hay_transporte():
+def test_nunca_camina_mas_de_400_m_seguidos():
     recorrido = planificar_simple((plaza("A", 300), plaza("B", 900), plaza("C", 920)), 300)
-    assert nombres(recorrido) == ["B", "A", "C"]
-    assert recorrido.metros_caminados_total() == 0
+    assert nombres(recorrido) == ["A", "B", "C"]
+    assert recorrido.metros_caminados_total() == 300 + 20  # A-B (600 m) va en transporte
+    assert all(parada.tramo.metros_caminados() <= 400 for parada in recorrido.paradas)
 
 
 def test_si_el_elegido_no_entra_sigue_con_otro():

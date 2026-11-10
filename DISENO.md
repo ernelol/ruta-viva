@@ -166,12 +166,13 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 - **Qué significa "mejor" y quién lo decide.** Lo decide el `CriterioDeCalidad`, no
   `planificar`. Con `MinimaCaminata`, es mejor el recorrido con menos metros caminados.
   `mejor_recorrido(recorridos, criterio)` compara recorridos ya calculados.
-- **Cómo elige `MinimaCaminata`.** En cada paso toma el lugar cuyo tramo obliga a caminar
-  menos y desempata por cercanía.
-- **Límites conocidos de este criterio.** No busca el óptimo (la letra no lo pide). Como
-  el transporte cuenta 0 m, puede saltear un lugar cercano para ir primero a uno lejano.
-  Y al comparar, un recorrido sin paradas gana con 0 m. Ambos son consecuencia directa de
-  medir solo la caminata.
+- **Cómo elige `MinimaCaminata`.** En cada paso va al lugar más cercano. Si queda a 400 m o
+  menos se camina; si no, se va en transporte. Así nunca se caminan más de 400 m seguidos y
+  el recorrido no da vueltas por la ciudad.
+- **Límites conocidos de este criterio.** No busca el óptimo (la letra no lo pide), así que
+  no siempre da el mínimo total de metros: en un caso con lugares a 300, 900 y 920 m camina
+  320 m, cuando ir primero en transporte daba 0 m. Y al comparar recorridos, uno sin paradas
+  gana con 0 m.
 - **Cambiar el criterio no toca el algoritmo.** Se agrega una subclase de
   `CriterioDeCalidad` y se le pasa a `planificar`.
 
@@ -189,8 +190,11 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
   Se puede revisar si lo justifica el cambio de requisito.
 - **Armar varios recorridos con un generador y quedarse con el mejor:** funcionaba, pero
   complicaba de más algo que la letra no pide.
-- **Elegir siempre el lugar más cercano:** era más simple, pero no minimizaba la caminata
-  (320 m en un caso donde se podía caminar 0 m).
+- **Elegir el lugar que obliga a caminar menos metros:** caminaba 0 m, pero como el
+  transporte cuenta 0 m, cruzaba la ciudad para no caminar 150 m. Saliendo de Plaza
+  Independencia recorría 7,1 km; yendo al más cercano son 1,1 km.
+- **Menor esfuerzo (un minuto a pie pesa como tres en transporte):** caminaba menos, pero
+  seguía yendo y volviendo (2,1 km) y era más difícil de explicar.
 - **Clases planas sin `frozen`:** se probaron, pero dejaban sin inmutabilidad, que la letra
   evalúa.
 - **Grafo de calles o API de mapas:** daría distancias reales, pero la letra no lo pide y
@@ -213,5 +217,7 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 - `Planificador` pasó a ser la función `planificar`, y todo el modelo quedó en un archivo.
 - Se agregó `LugarConHorario` entre `Lugar` y `Museo`/`Restaurante`, para validar el horario
   y no repetir código.
+- `MinimaCaminata` pasó de elegir el lugar con menos metros a pie a elegir el más cercano,
+  porque el anterior hacía recorridos que cruzaban la ciudad.
 - La inmutabilidad y `ABC` se quitaron y se volvieron a poner: sacarlas fue un error,
   documentado en `BITACORA_IA.md`.

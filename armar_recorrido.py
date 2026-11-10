@@ -24,6 +24,7 @@ from ruta_viva import (
     ParadaDeDescanso,
     Plaza,
     Restaurante,
+    TramoAPie,
     planificar,
 )
 
@@ -107,7 +108,8 @@ def main():
     if not recorrido.paradas:
         print("  (no entró ningún lugar en el tiempo disponible)")
     for numero, parada in enumerate(recorrido.paradas, start=1):
-        print(f"  {numero}. {parada.lugar.nombre} ({type(parada.tramo).__name__}, {parada.tramo.metros_caminados()} m caminados)")
+        como = "a pie" if isinstance(parada.tramo, TramoAPie) else "en transporte"
+        print(f"  {numero}. {parada.lugar.nombre} ({como}, {parada.tramo.distancia_m} m)")
     print(f"\nTotal caminado: {recorrido.metros_caminados_total()} m")
     print(f"Duración total: {recorrido.duracion_total_min()} min")
     print(f"Costo total: ${recorrido.costo_total():.0f}")

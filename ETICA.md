@@ -20,9 +20,9 @@ lugares antes de que el criterio elija, así que ningún otro atributo puede com
 
 **Sesgos del recorrido:**
 
-- **Personas que no pueden caminar mucho:** el criterio minimiza la caminata, pero el umbral
-  de 400 m y el ritmo de 70 m/min son iguales para todos y son supuestos míos, no medidos.
-  Para algunas personas 400 m ya es demasiado. Además, `es_accesible` es sí o no: no
+- **Personas que no pueden caminar mucho:** el criterio nunca hace caminar más de 400 m
+  seguidos, pero ese umbral y el ritmo de 70 m/min son iguales para todos y son supuestos
+  míos, no medidos. Para algunas personas 400 m ya es demasiado. Además, `es_accesible` es sí o no: no
   distingue, por ejemplo, entre una silla de ruedas y un bastón.
 - **Comercios que pagan:** hoy ningún lugar tiene un dato de patrocinio y el criterio solo
   usa metros y distancia, así que nadie puede pagar para subir en el recorrido. El riesgo

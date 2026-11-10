@@ -160,3 +160,21 @@ que lanzar `ValueError` al crearse, no al usarse. Y con `@dataclass(frozen=True)
 **Resultado real:** `ValueError`, `ValueError` y `FrozenInstanceError`.
 
 **¿Coincidió?:** Sí.
+
+---
+
+## MinimaCaminata como "más cercano": 10 lugares cada 200 m, 60 minutos
+
+**Contexto:** antes de cambiar el criterio se corrió una comparación exploratoria con el
+catálogo de Montevideo y el caso A/B/C, así que esos resultados ya se conocían. Esta
+predicción es sobre un caso que no se había ejecutado con el criterio nuevo.
+
+**Predicción (antes de ejecutar):** partida en 0 y lugares en 200, 400, …, 2000 m, con 15 min
+de visita cada uno. Yendo siempre al más cercano, cada salto es de 200 m a pie
+(round(200/70) = 3 min) + 15 de visita = 18 min. Entran Lugar 1, 2 y 3 (54 min). El Lugar 4
+llevaría a 72 min y no entra, y los siguientes tampoco. Espero **[Lugar 1, Lugar 2, Lugar 3],
+54 min y 600 m caminados**.
+
+**Resultado real:** `['Lugar 1', 'Lugar 2', 'Lugar 3']`, 54 min, 600 m.
+
+**¿Coincidió?:** Sí.

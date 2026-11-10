@@ -396,3 +396,25 @@ predicción coincidió y los 19 tests pasan.
 **Se revisó y quedó igual:** si dos lugares empatan en metros y distancia, gana el primero
 del catálogo. Es determinista, así que se dejó. Cerrar el script con Ctrl+D lo corta con un
 error; no afecta al cálculo.
+
+---
+
+### 2026-11-10 — El criterio hacía recorridos absurdos
+
+**Se pidió:** el usuario miró la visualización y dijo que no se entendía por qué elegía ese
+recorrido, porque hacía caminos muy largos.
+
+**Error real de la IA:** el 2026-11-05 la IA cambió `MinimaCaminata` para que eligiera el
+lugar con menos metros a pie y lo presentó como una mejora: en el caso A/B/C bajaba de 320 m
+a 0 m. No miró qué pasaba en un mapa real. Como el transporte cuenta 0 m, el criterio
+prefería cruzar la ciudad antes que caminar 150 m hasta el museo de al lado. Saliendo de
+Plaza Independencia recorría 7,1 km. Lo detectó el usuario, no la IA.
+
+**Devolvió:** una comparación de tres criterios sobre el catálogo de Montevideo: el actual
+(7,1 km recorridos y 0 m a pie), el más cercano (1,1 km y 437 m) y menor esfuerzo (2,1 km y
+20 m).
+
+**Se eligió:** el más cercano. Es una línea, se entiende a simple vista, y ningún tramo a pie
+pasa de 400 m. Se anotó la predicción antes de ejecutarlo y coincidió. Se reemplazaron dos
+tests y quedaron 19 en verde. En `DISENO.md` quedó como límite que no siempre da el mínimo
+total de metros.
