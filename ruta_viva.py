@@ -50,33 +50,45 @@ class Lugar(ABC):
 
 
 @dataclass(frozen=True)
-class Museo(Lugar):
+class LugarConHorario(Lugar):
+    """Abre en una franja y cierra en otra, dentro del mismo día."""
     horario_apertura: str
     horario_cierre: str
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.horario_apertura not in FRANJAS or self.horario_cierre not in FRANJAS:
+            raise ValueError("horario inválido")
+        if FRANJAS.index(self.horario_apertura) > FRANJAS.index(self.horario_cierre):
+            raise ValueError("no puede cerrar antes de abrir")
 
     def esta_disponible(self, momento):
         return FRANJAS.index(self.horario_apertura) <= FRANJAS.index(momento.franja) <= FRANJAS.index(self.horario_cierre)
 
 
 @dataclass(frozen=True)
-class Restaurante(Lugar):
-    horario_apertura: str
-    horario_cierre: str
-
-    def esta_disponible(self, momento):
-        return FRANJAS.index(self.horario_apertura) <= FRANJAS.index(momento.franja) <= FRANJAS.index(self.horario_cierre)
+class Museo(LugarConHorario):
+    pass
 
 
+@dataclass(frozen=True)
+class Restaurante(LugarConHorario):
+    pass
+
+
+@dataclass(frozen=True)
 class Plaza(Lugar):
     def esta_disponible(self, momento):
         return True
 
 
+@dataclass(frozen=True)
 class Mirador(Lugar):
     def esta_disponible(self, momento):
         return momento.clima != LLUVIA
 
 
+@dataclass(frozen=True)
 class ParadaDeDescanso(Lugar):
     """Un banco o baño accesible: no es un atractivo, pero hace falta para esta persona."""
 
@@ -174,7 +186,10 @@ class CriterioDeCalidad(ABC):
 class MinimaCaminata(CriterioDeCalidad):
     def elegir_siguiente(self, actual, disponibles):
         # el que obliga a caminar menos; si empatan, el más cercano
-        return min(disponibles, key=lambda lugar: (tramo_entre(actual, lugar).metros_caminados(), distancia(actual, lugar)))
+        return min(
+            disponibles,
+            key=lambda lugar: (tramo_entre(actual, lugar).metros_caminados(), distancia(actual, lugar)),
+        )
 
     def costo(self, recorrido):
         return recorrido.metros_caminados_total()
@@ -206,7 +221,8 @@ def planificar(partida: Lugar, momento: Momento, tiempo_disponible_min: int,
         siguiente = criterio.elegir_siguiente(actual, disponibles)
         disponibles.remove(siguiente)
         tramo = tramo_entre(actual, siguiente)
-        if recorrido.duracion_total_min() + tramo.duracion_min() + siguiente.duracion_visita_min <= tiempo_disponible_min:
+        duracion = tramo.duracion_min() + siguiente.duracion_visita_min
+        if recorrido.duracion_total_min() + duracion <= tiempo_disponible_min:
             recorrido = recorrido.agregar_parada(siguiente, tramo)
             actual = siguiente
 

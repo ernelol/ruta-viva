@@ -24,21 +24,21 @@ classDiagram
         +es_accesible: bool
         +esta_disponible(momento) bool*
     }
-    class Museo {
+    class LugarConHorario {
         +horario_apertura: str
         +horario_cierre: str
+        +esta_disponible(momento) bool
     }
-    class Restaurante {
-        +horario_apertura: str
-        +horario_cierre: str
-    }
+    class Museo
+    class Restaurante
     class Plaza
     class Mirador
     class ParadaDeDescanso
-    Lugar <|-- Museo
+    Lugar <|-- LugarConHorario
+    LugarConHorario <|-- Museo
+    LugarConHorario <|-- Restaurante
     Lugar <|-- Plaza
     Lugar <|-- Mirador
-    Lugar <|-- Restaurante
     Lugar <|-- ParadaDeDescanso
 
     class Momento {
@@ -85,9 +85,12 @@ classDiagram
     class CriterioDeCalidad {
         <<abstract>>
         +elegir_siguiente(actual, disponibles) Lugar*
-        +costo(recorrido) int*
+        +costo(recorrido) float*
     }
-    class MinimaCaminata
+    class MinimaCaminata {
+        +elegir_siguiente(actual, disponibles) Lugar
+        +costo(recorrido) float
+    }
     CriterioDeCalidad <|-- MinimaCaminata
 ```
 
@@ -110,6 +113,8 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 - **`Lugar` es la base de 5 subtipos.** Lo común vive en `Lugar` y cada diferencia vive en
   el `esta_disponible` de su subtipo. Un tipo de lugar nuevo es una clase nueva: el resto
   no cambia, y hay un test que lo comprueba definiendo un tipo dentro del propio test.
+- **`LugarConHorario` junta lo que Museo y Restaurante tenían repetido.** Los dos abren y
+  cierran en una franja; el horario y su validación se escriben una sola vez.
 - **Abstracción con `ABC` y `@abstractmethod`.** `Lugar`, `TramoRuta` y `CriterioDeCalidad`
   no se pueden crear directamente, y cada subclase está obligada a definir sus métodos. Es
   la forma que enseña "POO Relaciones".
@@ -123,10 +128,13 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 - **`Parada` se asocia con `Lugar` y con `TramoRuta`.** El lugar existe aunque nadie lo
   visite. El tramo lo crea `tramo_entre` y se lo pasan a la parada: como la parada no lo
   crea, no es composición, aunque el tramo solo se use ahí.
-- **Inmutabilidad con `@dataclass(frozen=True)` y tuplas.** Con `frozen`, una lista igual
-  aceptaría `append`, por eso las colecciones son tuplas. Así, calcular un recorrido no
-  puede modificar a otro, que es una restricción de la letra.
-- **Invariantes al construir.** `Lugar` rechaza duración o costo negativos, `Momento`
+- **Inmutabilidad con `@dataclass(frozen=True)` y tuplas.** Todas las clases con datos
+  llevan el decorador, también las subclases: si no, se les podría agregar un atributo
+  nuevo. Con `frozen`, una lista igual aceptaría `append`, por eso las colecciones son
+  tuplas. Así, calcular un recorrido no puede modificar a otro, que es una restricción de
+  la letra.
+- **Invariantes al construir.** `Lugar` rechaza duración o costo negativos,
+  `LugarConHorario` rechaza horarios inexistentes o que cierren antes de abrir, `Momento`
   rechaza franjas o climas inexistentes y `planificar` rechaza tiempo negativo. Un objeto
   inválido no llega a existir.
 - **`es_accesible` es un filtro duro, no parte del criterio.** Para esta variante,
@@ -203,5 +211,7 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
   paradas, para cumplir la definición de composición del curso.
 - Se sacó el generador de candidatos.
 - `Planificador` pasó a ser la función `planificar`, y todo el modelo quedó en un archivo.
+- Se agregó `LugarConHorario` entre `Lugar` y `Museo`/`Restaurante`, para validar el horario
+  y no repetir código.
 - La inmutabilidad y `ABC` se quitaron y se volvieron a poner: sacarlas fue un error,
   documentado en `BITACORA_IA.md`.

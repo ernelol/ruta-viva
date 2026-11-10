@@ -53,7 +53,7 @@ OpenStreetMap y se copiaron al código: © OpenStreetMap contributors. Los datos
 licencia Open Database License (ODbL), que permite copiarlos y adaptarlos si se da crédito a
 OpenStreetMap y sus colaboradores y se aclara la licencia. Si se distribuye una base derivada,
 debe ser bajo la misma licencia. El crédito aparece en el script y al ejecutarlo. No se usa
-ningún mapa de fondo: el dibujo se genera con esas coordenadas.
+ningún mapa ni se descarga nada al ejecutar: solo esas coordenadas, copiadas.
 
 Fuentes: textos de ambas leyes en impo.com.uy y openstreetmap.org/copyright.
 

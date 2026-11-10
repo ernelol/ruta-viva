@@ -370,3 +370,29 @@ evaluación perezosa y la comparación de recorridos. Sacarlos fue el error de l
 **Se verificó:** la predicción del nuevo `while` coincidió (`PREDICCIONES.md`) y 19 tests
 pasan. Hay menos tests porque se juntaron los que probaban lo mismo. El recorrido de
 Montevideo da el mismo resultado que antes.
+
+---
+
+### 2026-11-09 — Verificación a pedido del usuario
+
+**Se pidió:** probar el código buscando errores, y confirmar si está bien usar
+`@dataclass(frozen=True)` y `min` con clave doble.
+
+**Devolvió:** además de los tests, probó casos raros, entradas inválidas en el script y que
+los nombres citados en los documentos existan. Encontró dos errores reales de la IA en el
+código que ella misma había escrito:
+
+1. `Plaza`, `Mirador` y `ParadaDeDescanso` no llevaban `@dataclass(frozen=True)`. No se les
+   podía cambiar un atributo, pero sí agregarles uno nuevo, así que la inmutabilidad no era
+   completa.
+2. Faltaba validar los horarios. Un museo con un horario inexistente se creaba igual y fallaba
+   recién al usarse, y uno que abría de noche y cerraba a la mañana quedaba cerrado siempre,
+   sin avisar.
+
+**Se corrigió:** el decorador quedó en todas las subclases, y se agregó `LugarConHorario`,
+que valida el horario una sola vez y evita repetir el código de `Museo` y `Restaurante`. La
+predicción coincidió y los 19 tests pasan.
+
+**Se revisó y quedó igual:** si dos lugares empatan en metros y distancia, gana el primero
+del catálogo. Es determinista, así que se dejó. Cerrar el script con Ctrl+D lo corta con un
+error; no afecta al cálculo.

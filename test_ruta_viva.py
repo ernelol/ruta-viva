@@ -72,11 +72,17 @@ def test_rechaza_datos_invalidos():
         Momento(TARDE, "GRANIZO")
     with pytest.raises(ValueError):
         planificar_simple((), -1)
+    with pytest.raises(ValueError):
+        Museo("M", 0, 0, 30, 0, True, horario_apertura="ALMUERZO", horario_cierre=TARDE)
+    with pytest.raises(ValueError):
+        Museo("M", 0, 0, 30, 0, True, horario_apertura=NOCHE, horario_cierre=MANIANA)
 
 
 def test_los_objetos_son_inmutables():
     with pytest.raises(dataclasses.FrozenInstanceError):
         plaza("P", 0).costo = 999
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        plaza("P", 0).otro_atributo = 1
     with pytest.raises(dataclasses.FrozenInstanceError):
         MOMENTO.clima = LLUVIA
     with pytest.raises(dataclasses.FrozenInstanceError):

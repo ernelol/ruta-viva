@@ -15,6 +15,10 @@ Formato por entrada:
 **¿Coincidió?:** sí / no — si no, por qué estaba mal la predicción.
 ```
 
+Las entradas van en el orden en que se hicieron. Las primeras usan funciones de versiones
+anteriores del código (`armar_candidato`, `Planificador`), que después se reemplazaron; se
+dejan como historial. Hoy todo está en `ruta_viva.py`.
+
 ## armar_candidato(partida=(0,0), 10 lugares cada 200m en línea, tiempo_disponible_min=60)
 
 **Predicción:** el greedy va a lugar más cercano cada vez. Partida→Lugar1 (200m, tramo a
@@ -140,5 +144,19 @@ terminaba ahí con 0 paradas. Ahora debería descartar A, seguir con B (1 min de
 10 de visita) y devolver **una sola parada: B**.
 
 **Resultado real:** `['B']`, 11 min.
+
+**¿Coincidió?:** Sí.
+
+---
+
+## Validación de horarios y frozen en todas las subclases
+
+**Predicción (antes de ejecutar):** con el horario validado al construir, `Museo(...,
+horario_apertura="ALMUERZO", ...)` y un museo que abre de NOCHE y cierra a la MAÑANA tienen
+que lanzar `ValueError` al crearse, no al usarse. Y con `@dataclass(frozen=True)` también en
+`Plaza`, `agregar un atributo nuevo a una Plaza` tiene que lanzar `FrozenInstanceError`
+(hoy no lanza nada).
+
+**Resultado real:** `ValueError`, `ValueError` y `FrozenInstanceError`.
 
 **¿Coincidió?:** Sí.
