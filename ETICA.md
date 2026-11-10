@@ -1,61 +1,63 @@
 # Ética — Ruta viva
 
-## Datos que maneja la aplicación
+## 1. Datos que maneja la aplicación
 
-- **Datos del catálogo:** nombre, ubicación (en un plano inventado, nunca coordenadas
-  GPS reales), horarios, costo y accesibilidad de cada lugar. No identifican a ninguna
-  persona.
-- **Datos del visitante:** punto de partida, tiempo disponible, y si necesita transporte
-  accesible. Son parámetros de una sola corrida — no se guardan en ningún archivo ni se
-  asocian a una identidad. A diferencia de una app de turismo real, acá no hay cuenta de
-  usuario, ni historial, ni ubicación real del dispositivo: eso fue una decisión de
-  diseño, no una casualidad (ver restricción del enunciado de no depender de la
-  ubicación real de la máquina).
+- **Catálogo:** nombre, posición, horarios, costo y accesibilidad de cada lugar. No
+  identifica a nadie. Las coordenadas de `armar_recorrido.py` son de OpenStreetMap; la
+  accesibilidad, los horarios y los costos son datos de ejemplo, no información real.
+- **Ubicación del visitante:** el punto de partida se elige de una lista. El programa no
+  lee la ubicación de la computadora, no la guarda en ningún archivo y no la asocia con
+  ninguna persona. No hay cuentas ni historial.
 
-## Riesgo ético concreto y cómo lo mitiga el diseño
+## 2. Riesgo ético y cambio de diseño que lo mitiga
 
-**El riesgo:** que el sistema le diga a alguien con movilidad reducida que un lugar está
-disponible cuando en realidad no es accesible de verdad (una rampa rota, una escalera no
-declarada). Para esta variante eso no es un detalle — es el riesgo central: una
-recomendación que falla justo en lo que el usuario más necesita que sea confiable.
+**Riesgo principal: mandar a una persona con movilidad reducida a un lugar al que no puede
+entrar.** Es la falla más grave para este visitante.
 
-**La mitigación de diseño:** `es_accesible` en `Lugar` es un **filtro duro**, no un
-factor más que se pondera junto a otros. Un lugar marcado como no accesible queda
-completamente afuera del recorrido — no se le resta puntaje y se lo deja competir
-igual, se lo excluye antes de puntuar nada (`_lugares_disponibles()` en
-`planificador.py`). La razón: para esta variante, "inaccesible" no es un defecto menor
-compensable con otras cualidades (buena ubicación, bajo costo) — es una razón de
-exclusión total.
+**Cambio de diseño:** `es_accesible` es un filtro duro. `lugares_visitables` saca esos
+lugares antes de que el criterio elija, así que ningún otro atributo puede compensarlo.
+**Límite:** el programa confía en el dato cargado y no puede detectar si está mal.
 
-Esto también marca el límite honesto del sistema: el programa es tan confiable como el
-dato `es_accesible` que alguien cargó en el catálogo. Si ese dato está mal cargado (un
-lugar que dice ser accesible y no lo es), el programa no tiene forma de detectarlo por
-sí solo. Es una limitación real del diseño, no algo para esconder.
+**Sesgos del recorrido:**
 
-## Marco legal
+- **Personas que no pueden caminar mucho:** el criterio minimiza la caminata, pero el umbral
+  de 400 m y el ritmo de 70 m/min son iguales para todos y son supuestos míos, no medidos.
+  Para algunas personas 400 m ya es demasiado. Además, `es_accesible` es sí o no: no
+  distingue, por ejemplo, entre una silla de ruedas y un bastón.
+- **Comercios que pagan:** hoy ningún lugar tiene un dato de patrocinio y el criterio solo
+  usa metros y distancia, así que nadie puede pagar para subir en el recorrido. El riesgo
+  aparecería si se agregara. Como el criterio es explícito y está en un solo lugar, ese
+  cambio se vería en el código. Sí hay un sesgo sin pago: el catálogo lo elige quien lo arma,
+  y lo que no está cargado no se recomienda.
 
-Leídas para este proyecto (no citadas de memoria):
+## 3. Marco legal y licencia
 
-- **Ley Nº 18.651 (2010), Protección Integral de Personas con Discapacidad** —
-  arts. 68 y 69 establecen como prioridad la supresión de barreras físicas aplicando
-  normas técnicas UNIT de accesibilidad, y prohíben que centros recreativos, educativos
-  o culturales discriminen el acceso a sus instalaciones. Es la razón de fondo por la
-  que `es_accesible` se trata como un filtro excluyente y no como un detalle
-  secundario del modelo: la ley ya lo trata como no negociable, el programa sigue esa
-  misma lógica.
-- **Ley Nº 18.331 (2008), Protección de Datos Personales** — regula la recolección,
-  tratamiento y transferencia de datos personales en Uruguay, bajo principios de
-  legalidad, finalidad y consentimiento informado, con la URCDP como órgano de
-  control. Hoy esta aplicación no recolecta datos personales reales (ver sección
-  anterior), así que no está sujeta a esta ley en su forma actual — pero si una
-  versión futura guardara preferencias de un visitante identificado, aplicaría
-  directo, y el diseño actual (nada persiste, nada identifica) ya deja el terreno
-  preparado para eso.
+**Ley 18.331, Protección de Datos Personales.** Define dato personal como información
+"referida a personas físicas o jurídicas determinadas o determinables" (art. 4 D) e
+incluye como dato sensible la información "referente a la salud" (art. 4 E). Una ubicación
+asociada a una persona sería dato personal, y saber que esa persona tiene movilidad reducida
+podría revelar información de salud. Los datos sensibles requieren consentimiento expreso y
+escrito (art. 18), y los datos no pueden usarse para otra finalidad (art. 8). Esta versión
+no recolecta ni guarda esos datos. Una versión con usuarios reales tendría que cumplir con
+estos artículos.
 
-## Uso de IA
+**Ley 18.651, Protección Integral de Personas con Discapacidad.** Los edificios con
+concurrencia de público, las vías públicas, los parques y los jardines deben permitir que
+todas las personas puedan "acceder, ingresar, usar y egresar" (art. 68), y las Intendencias
+deben aplicar las normas técnicas de UNIT (art. 69). El art. 82 define las barreras en el
+transporte, relevante para la regla de transporte combinado. Por eso la accesibilidad se
+trata como requisito y no como preferencia.
 
-Ver `BITACORA_IA.md` para el detalle de cada interacción. En resumen: se usó IA para
-proponer la estructura de clases, el código del núcleo y los tests, y para investigar
-el marco legal de esta sección — siempre revisando y corrigiendo lo que devolvió antes
-de aceptarlo (incluye al menos un error real detectado y corregido, documentado en la
-bitácora).
+**Licencia de los datos de mapas.** Las coordenadas de `armar_recorrido.py` se consultaron en
+OpenStreetMap y se copiaron al código: © OpenStreetMap contributors. Los datos están bajo la
+licencia Open Database License (ODbL), que permite copiarlos y adaptarlos si se da crédito a
+OpenStreetMap y sus colaboradores y se aclara la licencia. Si se distribuye una base derivada,
+debe ser bajo la misma licencia. El crédito aparece en el script y al ejecutarlo. No se usa
+ningún mapa de fondo: el dibujo se genera con esas coordenadas.
+
+Fuentes: textos de ambas leyes en impo.com.uy y openstreetmap.org/copyright.
+
+## 4. Uso de IA
+
+Se usó IA para proponer el diseño, escribir código y tests, y buscar el marco legal. El detalle
+y los errores reales que se le corrigieron están en `BITACORA_IA.md`.

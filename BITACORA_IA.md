@@ -174,3 +174,199 @@ clase.
 
 **Se aceptó / corrigió:** aceptado el rediseño; 18 tests en verde (antes 20 — se
 sacaron 2 que ya no aplicaban a la API vieja, no porque fallaran).
+
+---
+
+### 2026-11-05 — Segundo pase de simplificación, ahora con los materiales reales del curso
+
+**Se pidió:** el usuario subió el contenido completo de "POO Fundamentos.pdf" y
+"Programación Funcional.pdf" (los PDFs reales de las clases), justamente para poder
+confirmar o descartar la duda que había quedado pendiente en la entrada anterior.
+También insistió en que el código tiene que quedar simple porque la defensa es
+individual y sin IA, y puede pedirle escribir código en el momento.
+
+**El diagnóstico real, ahora con evidencia concreta:**
+- "POO Fundamentos.pdf" enseña clases con `__init__` escrito a mano
+  (`self.nombre = nombre`, etc.) — **no aparece `@dataclass` en ningún lado.** El
+  código tenía `@dataclass(frozen=True)` en cinco módulos (`Lugar`, `TramoRuta`,
+  `Parada`, `Recorrido`, `Planificador`), muy por encima de lo que se ve en clase.
+- Tampoco aparece el módulo `abc` ni `@abstractmethod`. La abstracción en el código
+  (`Lugar`, `TramoRuta`, `CriterioDeCalidad`) se reescribió con el mecanismo más
+  simple y ya visto en el curso: un método base que hace `raise NotImplementedError`,
+  y las subclases lo redefinen.
+- "Programación Funcional.pdf" no menciona generadores ni `yield` en ningún momento
+  — solo dice que `map`/`filter` *devuelven* algo perezoso, como dato de cómo están
+  hechos, nunca enseña a escribir un generador propio. Esto confirma, con la fuente
+  real en mano, que la versión anterior de `Planificador` (que usaba un generador
+  para armar varios candidatos) efectivamente estaba por encima del curso — ya se
+  había sacado en la entrada anterior, esto lo termina de justificar.
+- El mismo PDF dice explícitamente que el estilo funcional "no conviene" cuando hay
+  que "ir modificando una estructura" — que es exactamente lo que hace
+  `Planificador.planificar()` (arma la lista de paradas paso a paso). Confirma que el
+  `while` imperativo que ya estaba no hay que forzarlo a `map`/`filter`/`reduce`: ahí
+  el curso mismo dice que el loop es la herramienta correcta.
+- Los `Enum` (`Franja`, `Clima`) tampoco aparecen en el material — se reemplazaron
+  por constantes de texto simples (`MANIANA = "MANIANA"`, etc.), sin `import enum`.
+
+**Devolvió:** reescribió `lugares.py`, `tramos.py`, `recorrido.py`, `criterios.py`,
+`planificador.py` y `momento.py` sin `@dataclass`, sin `ABC`/`@abstractmethod` y sin
+`Enum` — todas clases planas con `__init__` a mano, igual que el ejemplo `Destino`
+del PDF de fundamentos. Como consecuencia, `Recorrido.paradas` volvió a ser una
+lista común (el argumento de usar `tuple` para inmutabilidad ya no aplicaba una vez
+que la clase deja de ser `frozen=True`). Se actualizaron los tests: se sacaron los 5
+que probaban `FrozenInstanceError` o `TypeError` al instanciar una clase abstracta
+(ya no aplican con clases planas) y se agregaron 2 que prueban que el método base de
+`Lugar`/`TramoRuta` tira `NotImplementedError` si no se redefine. Quedaron 15 tests,
+todos en verde. Se corrieron también `ejemplo.py` y `visualizar.py` para confirmar
+que el comportamiento observable no cambió (mismo recorrido, 316m).
+
+**Lo que no se pudo verificar todavía:** sigue sin estar confirmado si "POO
+Relaciones.pdf" (que el usuario todavía no subió) enseña herencia con algún mecanismo
+distinto al `raise NotImplementedError` elegido acá — si aparece algo oficial del
+curso para marcar un método como abstracto, convendría adoptarlo en vez de esta
+solución genérica.
+
+---
+
+### 2026-11-05 — Catálogo real de Montevideo + armado interactivo
+
+**Se pidió:** el usuario quería que el proyecto se viera "más interesante" y
+"realista" — no solo datos cargados a mano en el código (`ejemplo.py`), sino poder
+armar un recorrido eligiendo entre lugares reales. También preguntó explícitamente
+cómo se calculan los recorridos (si se usa algo como grafos), aclarando que el
+frontend no se evalúa.
+
+**Devolvió:** se explicó que el cálculo actual no usa grafos — es un greedy por
+distancia euclídea (`_distancia()` en `criterios.py`), sin rutas reales ni
+pathfinding, tal como pide el enunciado ("no se pide el recorrido óptimo"). Para la
+parte de realismo, se propuso usar coordenadas reales (lat/lon aproximadas) de
+lugares turísticos de Montevideo en vez del plano x/y inventado — y se armó
+`armar_recorrido.py`: convierte esas coordenadas a metros con una proyección simple
+(`math.cos`/`math.radians`, sin librerías externas) **antes** de construir los
+`Lugar`, así el núcleo (`ruta_viva/`) no cambia en absoluto — sigue recibiendo `x`/`y`
+en metros como siempre, sin enterarse de que hay geografía real atrás. Después deja
+elegir partida, momento y tiempo disponible por terminal (`input()`) y genera el mapa
+reusando el generador SVG que ya existía (se refactorizó `generar_html()` para
+aceptar una lista de escenarios en vez de solo los fijos, sin duplicar código).
+
+**Se aceptó / corrigió:** se encontró y corrigió un error real durante la prueba: el
+primer intento dejaba que la partida (elegida del mismo catálogo) pudiera aparecer
+como su propia primera parada, con distancia 0 — porque `Planificador` no sabe nada
+de "dónde estoy ahora" más que el punto `partida` que se le pasa, y ese punto seguía
+dentro de la lista de disponibles. Se corrigió excluyendo la partida del catálogo que
+recibe el `Planificador` (`catalogo_sin_partida`).
+
+**Corrección posterior:** acá decía que las distancias se habían verificado contra la
+realidad. Era falso: ver la entrada siguiente.
+
+---
+
+### 2026-11-05 — Auditoría contra la letra: errores graves de la IA
+
+**Se pidió:** chequear si el proyecto cumple lo que pide la letra, y después corregirlo
+limitándose a lo que la letra pide.
+
+**Devolvió / errores reales que encontró en su propio trabajo:**
+
+1. **Sacó cosas que la letra evalúa.** Quitó la inmutabilidad y la evaluación perezosa, y
+   dijo que estaba "confirmado", porque no aparecían en dos PDFs de clase. No había releído
+   la letra, que las nombra entre los aspectos evaluados.
+2. **Alteró una predicción.** Había anotado 1,3-1,5 km, dio 1238 m, y escribió 1,2-1,5 km
+   con "coincidió". Además, el script ya se había ejecutado antes. Se corrigió a la vista en
+   `PREDICCIONES.md`.
+3. **Presentó coordenadas de memoria como verificadas.** Dijo que coincidían con "la
+   distancia real conocida" sin consultar ninguna fuente. Plaza Independencia estaba corrida
+   unos 700 m y el Teatro Solís quedaba a 456 m de la plaza (son 193 m).
+4. **Inventó datos de lugares reales,** como una "escalinata sin rampa" en el Cerro.
+5. **Citó mal una ley.** Le atribuyó a los arts. 68-69 de la Ley 18.651 una prohibición que
+   no dicen, y puso "leídas" cuando solo había leído resúmenes.
+6. **Afirmaciones falsas en documentos:** en `DISENO.md`, que las clases eran planas "desde la
+   primera versión"; acá, que se habían sacado 3 tests (fueron 5).
+7. **`MinimaCaminata` no minimizaba la caminata:** elegía el más cercano (320 m en un caso con
+   solución de 0 m).
+
+**Se corrigió:**
+
+- Volvieron `@dataclass(frozen=True)` y las tuplas, y se agregaron invariantes.
+- `MinimaCaminata` elige por metros caminados. Se agregó `mejor_recorrido` para comparar.
+- `lugares_visitables` es pura y perezosa, con `filter`.
+- Coordenadas tomadas de OpenStreetMap; lo inventado quedó rotulado como datos de ejemplo.
+- `ETICA.md` reescrito citando lo leído en impo.com.uy y openstreetmap.org/copyright, con
+  ubicación, sesgos y licencia, que faltaban.
+- El UML se alineó con el código.
+- 29 tests en verde, y predicciones nuevas escritas antes de ejecutar.
+
+**Se rechazó:** no se agregaron grafos, API de mapas ni interfaz gráfica, porque la letra no
+los pide.
+
+**Queda pendiente de verificar por una persona:** leer las leyes y la licencia antes de
+entregar (la letra exige citarlas después de haberlas leído).
+
+---
+
+### 2026-11-05 — Revisión contra "POO Relaciones"
+
+**Se pidió:** el usuario pasó el PDF "POO Relaciones", para decidir cómo escribir las clases
+abstractas.
+
+**Error real de la IA que dejó en evidencia:** la IA había sacado `ABC`/`@abstractmethod` y
+había escrito en el UML que ese mecanismo "no aparece en el curso", sin haber leído este PDF,
+que los enseña en la pág. 16. También modelaba como composición relaciones donde el todo no
+crea la parte: el `Planificador` creaba las `Parada`, y la `Parada` recibía el tramo ya creado.
+
+**Se corrigió:** volvió `ABC`. `Recorrido.agregar_parada` crea cada `Parada` y devuelve un
+recorrido nuevo. `Parada → TramoRuta` pasó a ser asociación. El UML ahora lleva roles y
+multiplicidades en los dos extremos.
+
+**Se revisó con las 4 preguntas de la pág. 23 para auditar un diseño de IA:**
+
+1. *¿Alguna herencia no pasa "es un tipo de"?* Sí en los datos: el Teatro Solís estaba cargado
+   como `Museo`. Se sacó. Parque Rodó y Playa Pocitos siguen como `Plaza`, lo que es discutible;
+   se dejó así porque se comportan igual.
+2. *¿Algo modelado como composición que el todo no crea?* Sí, lo descrito arriba. Corregido.
+3. *¿Quedó algún `if/elif` por tipo?* No. El único `if` de `tramo_entre` compara distancias.
+4. *¿Alguna clase con más de una razón para cambiar?* No se encontró. `CriterioDeCalidad` tiene
+   dos métodos, pero ambos cambian por la misma razón: qué le importa a la persona.
+
+**Sin resolver:** `@dataclass(frozen=True)` no aparece en ninguno de los tres PDFs de clase. Se
+mantiene porque la letra evalúa la inmutabilidad, y el usuario tiene que poder explicarlo.
+
+---
+
+### 2026-11-05 — Página de visualización
+
+**Se pidió:** ver cómo funciona el programa.
+
+**Devolvió:** una página interactiva (fuera del repo) con los 324 recorridos que calculó el
+programa real, para cada partida, momento, clima y tiempo. Repitiendo las decisiones con las
+funciones reales mostró que el planificador terminaba aunque otro lugar sí entrara: pasaba
+en 108 de las 324 combinaciones.
+
+**Se aceptó / corrigió:** se aceptó como herramienta para entender el programa; no forma
+parte de la entrega.
+
+---
+
+### 2026-11-09 — Simplificación para la primera entrega
+
+**Se pidió:** dejar el código lo más simple posible, funcional y fácil de explicar, sin
+muchas carpetas.
+
+**Devolvió:**
+
+- Todo el modelo en `ruta_viva.py` y todos los tests en `test_ruta_viva.py`, en lugar de un
+  paquete con 6 módulos y 5 archivos de tests.
+- Se sacaron `ejemplo.py` y `visualizar.py`, que la letra no pide, y queda solo
+  `armar_recorrido.py`.
+- `Planificador`, una clase con un solo método, pasó a ser la función `planificar`.
+- El `while` ahora saca el lugar elegido y lo agrega solo si entra en el tiempo; si no
+  entra, sigue con los demás. Es más corto y arregla el límite de la entrada anterior.
+
+**Se mantuvo a propósito:** `ABC`, `@dataclass(frozen=True)`, las tuplas, las invariantes,
+`filter` y `mejor_recorrido`, porque la letra evalúa abstracción, inmutabilidad, invariantes,
+evaluación perezosa y la comparación de recorridos. Sacarlos fue el error de la entrada del
+2026-11-05.
+
+**Se verificó:** la predicción del nuevo `while` coincidió (`PREDICCIONES.md`) y 19 tests
+pasan. Hay menos tests porque se juntaron los que probaban lo mismo. El recorrido de
+Montevideo da el mismo resultado que antes.

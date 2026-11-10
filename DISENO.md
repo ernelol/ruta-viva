@@ -4,18 +4,11 @@
 
 - **Visitante:** persona con movilidad reducida.
 - **Regla propia:** transporte combinado (el recorrido puede alternar tramos a pie con
-  tramos en un transporte accesible, no todo tiene que caminarse).
-- **Criterio de calidad:** mínima caminata — entre varios recorridos posibles, gana el
-  que exige menos metros caminados, no el que visita más lugares.
+  tramos en un transporte accesible).
+- **Criterio de calidad:** mínima caminata.
 
-### Por qué esta combinación
-
-Las tres partes cuentan la misma historia: para alguien con movilidad reducida, la
-pregunta no es "¿cuántos atractivos puedo ver?" sino "¿cuánto tengo que caminar para
-verlos, y hay alternativa cuando es demasiado?". Esto además le da contenido real y no
-forzado a `ETICA.md`: el enunciado del proyecto ya sugiere como riesgo ético que el
-recorrido tenga sesgo hacia "personas que no pueden caminar mucho" — acá esa pregunta
-es el centro del diseño, no una nota al margen.
+Las tres cuentan la misma historia: para esta persona la pregunta no es "¿cuántos
+atractivos puedo ver?" sino "¿cuánto tengo que caminar para verlos?".
 
 ## Las clases
 
@@ -26,15 +19,21 @@ classDiagram
         +nombre: str
         +x: float
         +y: float
-        +duracion_visita: int
+        +duracion_visita_min: int
         +costo: float
         +es_accesible: bool
         +esta_disponible(momento) bool*
     }
-    class Museo
+    class Museo {
+        +horario_apertura: str
+        +horario_cierre: str
+    }
+    class Restaurante {
+        +horario_apertura: str
+        +horario_cierre: str
+    }
     class Plaza
     class Mirador
-    class Restaurante
     class ParadaDeDescanso
     Lugar <|-- Museo
     Lugar <|-- Plaza
@@ -44,9 +43,10 @@ classDiagram
 
     class Momento {
         <<inmutable>>
-        +franja: Franja
-        +clima: Clima
+        +franja: str
+        +clima: str
     }
+    Lugar ..> Momento : consulta
 
     class TramoRuta {
         <<abstract>>
@@ -57,100 +57,151 @@ classDiagram
         +distancia_m: int
     }
     class TramoEnTransporte {
-        +duracion_min: int
+        +distancia_m: int
     }
     TramoRuta <|-- TramoAPie
     TramoRuta <|-- TramoEnTransporte
 
     class Parada {
-        +llegar(momento) bool
+        <<inmutable>>
+        +lugar: Lugar
+        +tramo: TramoRuta
     }
-    Parada --> "1" Lugar
-    Parada *-- "1" TramoRuta
+    Parada "*" --> "1" Lugar : lugar
+    Parada "1" --> "1" TramoRuta : tramo
 
     class Recorrido {
+        <<inmutable>>
         +momento_inicio: Momento
+        +paradas: tuple
+        +agregar_parada(lugar, tramo) Recorrido
         +metros_caminados_total() int
-        +duracion_total() int
+        +duracion_total_min() int
         +costo_total() float
     }
-    Recorrido *-- "1..*" Parada
+    Recorrido "1" *-- "0..*" Parada : paradas
+    Recorrido "*" --> "1" Momento : momento_inicio
 
     class CriterioDeCalidad {
         <<abstract>>
         +elegir_siguiente(actual, disponibles) Lugar*
+        +costo(recorrido) int*
     }
     class MinimaCaminata
     CriterioDeCalidad <|-- MinimaCaminata
-
-    class Planificador {
-        +planificar(partida, momento, tiempo_disponible) Recorrido
-    }
-    Planificador --> "0..*" Lugar
-    Planificador --> "1" CriterioDeCalidad
 ```
 
-### Decisiones de diseño
+Además hay funciones puras fuera de las clases:
 
-- **`Lugar` es abstracta, con 5 subtipos concretos (polimorfismo).** Cada subtipo decide
-  distinto cuándo está disponible (`esta_disponible(momento)`): un Mirador puede no
-  valer la pena si llueve, un Museo tiene horario fijo. Agregar un tipo de lugar nuevo no
-  toca el resto del programa (cumple la restricción del enunciado).
-- **`ParadaDeDescanso` es el quinto tipo, y es el que distingue esta variante.** No es un
-  atractivo turístico — es un banco o baño accesible para parar entre lugares. Sin
-  horario, sin costo, siempre disponible (`esta_disponible` devuelve `True` siempre), a
-  diferencia de los otros cuatro. No es una variación más del mismo patrón: es un tipo de
-  lugar que solo tiene sentido si la variante es, de verdad, movilidad reducida — y le da
-  contenido real a `ETICA.md` en vez de una mención de compromiso.
-- **`Momento` es inmutable y se inyecta, nunca se lee del reloj del sistema.** Así el
-  cálculo es reproducible: correr el mismo recorrido dos veces con el mismo `Momento` da
-  el mismo resultado, y se puede probar un mediodía lluvioso sin esperar a que llueva.
-- **`Parada` es asociación con `Lugar`, pero composición con `TramoRuta`.** El Lugar
-  existe aunque nadie lo visite (un museo sigue ahí aunque hoy no entre en ningún
-  recorrido) — asociación. El tramo para llegar a esa parada puntual no tiene sentido
-  fuera de ella — composición, igual que la Serie dentro de la Rutina del práctico de UML.
-- **`TramoRuta` es su propia jerarquía (a pie / en transporte), separada de `Lugar`.**
-  Es la pieza central de la variante: un mismo recorrido puede alternar tramos a pie con
-  tramos en transporte accesible. Si viviera dentro de `Lugar` no podría variar tramo a
-  tramo.
-- **`Recorrido` compone `Parada` (1..\*), no al revés.** Si se descarta un recorrido
-  candidato, sus paradas desaparecen con él — no se comparten entre recorridos.
-  `metros_caminados_total()` no se guarda como atributo: se calcula sumando los tramos
-  cada vez, para que no pueda quedar un número viejo si cambia algo (inmutabilidad).
-- **`Planificador.planificar()` es un solo loop que le pregunta al criterio, paso a
-  paso, cuál es el próximo lugar.** No arma un recorrido completo para después
-  compararlo con otros — en cada parada, `CriterioDeCalidad.elegir_siguiente(actual,
-  disponibles)` decide directamente cuál visitar después. Es el criterio simple y fácil
-  de cambiar que pide el enunciado ("no se pide el recorrido óptimo"). (Hubo una versión
-  anterior que armaba varios recorridos completos con un generador para elegir el
-  mejor entre todos — se sacó por ser más complicada de lo que hacía falta; queda el
-  motivo en `BITACORA_IA.md`.)
-- **`CriterioDeCalidad` es una interfaz con una sola responsabilidad (patrón Estrategia),
-  igual que las estrategias de boxes del práctico de F1.** Hoy hay una sola
-  implementación (`MinimaCaminata`, que elige siempre el lugar disponible más cercano),
-  pero el enunciado pide que cambiar el criterio no toque el algoritmo — así que vive
-  separado de `Planificador` desde el día uno.
-- **`Lugar` tiene `x`/`y` (un plano inventado, no GPS real).** Necesario para que
-  `Planificador` pueda calcular la distancia entre dos lugares y decidir el tramo — sin
-  esto `TramoRuta` no tendría de dónde sacar los metros. No se agregó al diagrama
-  original; se sumó al escribir el código y se corrige acá para que el UML siga
-  coincidiendo con lo implementado.
-- **`es_accesible` en `Lugar` es un filtro duro, no parte del puntaje.** Un lugar no
-  accesible se descarta antes de puntuar, no se penaliza y listo — porque para esta
-  variante "inaccesible" no es "peor", es "no sirve". Esto después tiene que aparecer
-  explicado en `ETICA.md`.
+| Función | Qué hace |
+|---|---|
+| `planificar(partida, momento, tiempo_disponible_min, catalogo, criterio)` | Arma el `Recorrido` |
+| `lugares_visitables(catalogo, momento)` | Deja los lugares accesibles y disponibles (perezosa) |
+| `tramo_entre(origen, destino)` | Hasta 400 m, `TramoAPie`; más, `TramoEnTransporte` |
+| `distancia(a, b)` | Distancia en línea recta, en metros |
+| `mejor_recorrido(recorridos, criterio)` | El recorrido de menor costo según el criterio |
 
-### Alternativas descartadas
+Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 
-- **Un solo atributo `metros_caminados` en `Lugar`** en vez de una jerarquía `TramoRuta`
-  separada: se descartó porque la distancia depende del tramo entre dos lugares, no de
-  un lugar en sí — un mismo Museo puede llegarse caminando o en transporte según el
-  recorrido.
-- **`Visitante` como clase propia:** se descartó por ahora — la variante es fija (siempre
-  movilidad reducida), así que sus parámetros (tiempo disponible, si necesita transporte
-  accesible) entran como argumentos de `Planificador` en vez de un objeto aparte. Se
-  puede revisar si el cambio de requisito del Hito 2 lo justifica.
-- **Comparar recorridos completos ya armados (puntuar cada uno y quedarse con el
-  mejor):** se probó y se descartó por complicar de más algo simple — necesitaba armar
-  varios recorridos candidatos antes de poder elegir. La versión actual decide en cada
-  paso, no al final, y da un algoritmo mucho más corto y fácil de explicar.
+## Decisiones de diseño
+
+### Objetos
+
+- **`Lugar` es la base de 5 subtipos.** Lo común vive en `Lugar` y cada diferencia vive en
+  el `esta_disponible` de su subtipo. Un tipo de lugar nuevo es una clase nueva: el resto
+  no cambia, y hay un test que lo comprueba definiendo un tipo dentro del propio test.
+- **Abstracción con `ABC` y `@abstractmethod`.** `Lugar`, `TramoRuta` y `CriterioDeCalidad`
+  no se pueden crear directamente, y cada subclase está obligada a definir sus métodos. Es
+  la forma que enseña "POO Relaciones".
+- **`ParadaDeDescanso` distingue esta variante.** No es un atractivo: es un banco o baño
+  accesible, y solo tiene sentido para este visitante.
+- **Herencia solo donde hay "es un tipo de".** Un museo *es un* lugar y un tramo a pie *es
+  un* tramo. Por eso el Teatro Solís salió del catálogo: estaba cargado como `Museo`, y un
+  teatro no lo es.
+- **`Recorrido` compone `Parada`.** El recorrido crea cada parada en `agregar_parada`, quien
+  lo usa nunca crea una a mano, y la parada no significa nada fuera de ese recorrido.
+- **`Parada` se asocia con `Lugar` y con `TramoRuta`.** El lugar existe aunque nadie lo
+  visite. El tramo lo crea `tramo_entre` y se lo pasan a la parada: como la parada no lo
+  crea, no es composición, aunque el tramo solo se use ahí.
+- **Inmutabilidad con `@dataclass(frozen=True)` y tuplas.** Con `frozen`, una lista igual
+  aceptaría `append`, por eso las colecciones son tuplas. Así, calcular un recorrido no
+  puede modificar a otro, que es una restricción de la letra.
+- **Invariantes al construir.** `Lugar` rechaza duración o costo negativos, `Momento`
+  rechaza franjas o climas inexistentes y `planificar` rechaza tiempo negativo. Un objeto
+  inválido no llega a existir.
+- **`es_accesible` es un filtro duro, no parte del criterio.** Para esta variante,
+  "inaccesible" no es "peor": es "no sirve". Ver `ETICA.md`.
+
+### Funciones
+
+- **Funciones puras donde se calcula.** `planificar`, `distancia`, `tramo_entre`,
+  `lugares_visitables`, `mejor_recorrido` y los totales de `Recorrido` no modifican nada ni
+  dependen de nada externo.
+- **`planificar` es una función, no una clase.** Recibe todo lo que necesita y devuelve un
+  `Recorrido`. Una clase `Planificador` con un solo método no agregaba nada.
+- **Orden superior.** `min(disponibles, key=...)`, `min(recorridos, key=criterio.costo)` y
+  `filter(...)` reciben funciones como argumento.
+- **Evaluación perezosa.** `lugares_visitables` devuelve un `filter`, que no evalúa ningún
+  lugar hasta que se lo recorre (hay un test), y los totales usan expresiones generadoras.
+  No se escribieron generadores con `yield` porque el algoritmo no los necesita.
+- **Un `while` en `planificar`.** Va armando una estructura paso a paso, justo el caso en
+  que el material del curso dice que no conviene el estilo funcional. En cada vuelta saca
+  de `disponibles` el lugar que eligió el criterio y, si entra en el tiempo que queda, lo
+  agrega. Si no entra, sigue con los demás. Lo único que muta es esa lista local; cada
+  parada produce un `Recorrido` nuevo.
+- **Efectos separados del cálculo.** `Momento` se inyecta y nunca se lee el reloj. Las
+  coordenadas son datos fijos. Pantalla y teclado viven solo en `armar_recorrido.py`,
+  nunca en `ruta_viva.py`.
+
+### El criterio
+
+- **Qué significa "mejor" y quién lo decide.** Lo decide el `CriterioDeCalidad`, no
+  `planificar`. Con `MinimaCaminata`, es mejor el recorrido con menos metros caminados.
+  `mejor_recorrido(recorridos, criterio)` compara recorridos ya calculados.
+- **Cómo elige `MinimaCaminata`.** En cada paso toma el lugar cuyo tramo obliga a caminar
+  menos y desempata por cercanía.
+- **Límites conocidos de este criterio.** No busca el óptimo (la letra no lo pide). Como
+  el transporte cuenta 0 m, puede saltear un lugar cercano para ir primero a uno lejano.
+  Y al comparar, un recorrido sin paradas gana con 0 m. Ambos son consecuencia directa de
+  medir solo la caminata.
+- **Cambiar el criterio no toca el algoritmo.** Se agrega una subclase de
+  `CriterioDeCalidad` y se le pasa a `planificar`.
+
+### Datos
+
+- **`armar_recorrido.py` convierte lat/lon a metros antes de crear los `Lugar`.** El núcleo
+  solo ve `x`/`y` en metros y nunca lee la ubicación de la computadora. Las coordenadas son
+  de OpenStreetMap; accesibilidad, horarios y precios son datos de ejemplo.
+
+## Alternativas descartadas
+
+- **Un atributo `metros_caminados` en `Lugar`:** la distancia depende del tramo entre dos
+  lugares, no de un lugar.
+- **`Visitante` como clase:** la variante es fija y sus parámetros entran como argumentos.
+  Se puede revisar si lo justifica el cambio de requisito.
+- **Armar varios recorridos con un generador y quedarse con el mejor:** funcionaba, pero
+  complicaba de más algo que la letra no pide.
+- **Elegir siempre el lugar más cercano:** era más simple, pero no minimizaba la caminata
+  (320 m en un caso donde se podía caminar 0 m).
+- **Clases planas sin `frozen`:** se probaron, pero dejaban sin inmutabilidad, que la letra
+  evalúa.
+- **Grafo de calles o API de mapas:** daría distancias reales, pero la letra no lo pide y
+  solo se permite la librería estándar.
+- **Una clase `Planificador`:** tenía un solo método, así que quedó como función.
+- **Un paquete con un archivo por clase:** son unas 200 líneas; en un solo archivo es más
+  fácil de recorrer y explicar.
+- **Terminar cuando el lugar elegido no entra:** era lo que hacía antes, pero cortaba el
+  recorrido aunque otro lugar sí entrara.
+
+## Qué cambió respecto del diseño original
+
+- `Lugar` sumó `x`/`y`, porque el planificador necesita calcular distancias.
+- `CriterioDeCalidad` pasó de solo puntuar recorridos a elegir el próximo lugar y dar el
+  costo de un recorrido.
+- Los `Enum` se reemplazaron por constantes de texto.
+- `Parada` pasó de componer `TramoRuta` a asociarse con él, y `Recorrido` ahora crea sus
+  paradas, para cumplir la definición de composición del curso.
+- Se sacó el generador de candidatos.
+- `Planificador` pasó a ser la función `planificar`, y todo el modelo quedó en un archivo.
+- La inmutabilidad y `ABC` se quitaron y se volvieron a poner: sacarlas fue un error,
+  documentado en `BITACORA_IA.md`.
