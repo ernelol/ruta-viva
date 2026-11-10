@@ -418,3 +418,27 @@ Plaza Independencia recorría 7,1 km. Lo detectó el usuario, no la IA.
 pasa de 400 m. Se anotó la predicción antes de ejecutarlo y coincidió. Se reemplazaron dos
 tests y quedaron 19 en verde. En `DISENO.md` quedó como límite que no siempre da el mínimo
 total de metros.
+
+---
+
+### 2026-11-10 — Mapa con calles reales para la visualización
+
+**Se pidió:** que la visualización (que no se entrega ni se evalúa) mostrara un mapa de verdad,
+con recorridos que respeten las cuadras, no puntos sobre fondo blanco unidos en línea recta.
+
+**Devolvió:** una página con las calles, la costa y los parques de Montevideo, bajados una
+sola vez de OpenStreetMap. Para cada par de lugares calcula el camino más corto por las
+calles: a pie sin escaleras y en transporte solo por calles con autos. La página muestra, en
+cada paso, la distancia en línea recta, que es la que usa el programa, y la distancia por la
+calle. Los recorridos los sigue calculando `ruta_viva.py`, sin cambios.
+
+**Se corrigió en el camino:** la primera descarga dejaba las calles del Cerro desconectadas
+del resto, porque la conexión rodea la bahía por fuera de la zona bajada, y no incluía los
+parques cargados como relaciones. También aparecía "0 m por la calle" entre dos lugares
+cercanos, porque no se sumaba el tramo de cada lugar a la calle. Además, los nombres de los
+lugares se pisaban con los marcadores. Se revisó con capturas de pantalla en escritorio,
+modo oscuro y celular.
+
+**Límite que hay que saber explicar:** el programa decide con distancias en línea recta, y el
+mapa solo dibuja ese mismo recorrido por las calles. Desde el Cerro, 4,8 km en línea recta son
+11,6 km por la calle.
