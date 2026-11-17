@@ -6,14 +6,17 @@ from ruta_viva import (
     LLUVIA, MANIANA, NOCHE, SOLEADO, TARDE,
     CriterioDeCalidad, Lugar, MinimaCaminata, Mirador, Momento, Museo, ParadaDeDescanso, Plaza,
     Recorrido, Restaurante, TramoAPie, TramoEnTransporte, TramoRuta,
-    lugares_visitables, mejor_recorrido, planificar, tramo_entre,
+    costo_de_ir, lugares_visitables, mejor_recorrido, planificar, tramo_entre,
 )
 
 MOMENTO = Momento(TARDE, SOLEADO)
 
 
-def plaza(nombre, x, visita=15, accesible=True):
-    return Plaza(nombre=nombre, x=x, y=0, duracion_visita_min=visita, costo=0, es_accesible=accesible)
+def plaza(nombre, x, visita=15, accesible=True, costo=0):
+    return Plaza(nombre=nombre, x=x, y=0, duracion_visita_min=visita, costo=costo, es_accesible=accesible)
+
+
+PARTIDA = plaza("Partida", 0)
 
 
 def nombres(recorrido):
@@ -21,7 +24,7 @@ def nombres(recorrido):
 
 
 def planificar_simple(catalogo, minutos):
-    return planificar(plaza("Partida", 0), MOMENTO, minutos, catalogo, MinimaCaminata())
+    return planificar(PARTIDA, MOMENTO, minutos, catalogo, MinimaCaminata())
 
 
 # ---------- Abstracción ----------
@@ -86,7 +89,7 @@ def test_los_objetos_son_inmutables():
     with pytest.raises(dataclasses.FrozenInstanceError):
         MOMENTO.clima = LLUVIA
     with pytest.raises(dataclasses.FrozenInstanceError):
-        Recorrido(MOMENTO).paradas = ()
+        Recorrido(PARTIDA, MOMENTO).paradas = ()
 
 
 # ---------- Tramos y recorrido ----------
@@ -102,7 +105,7 @@ def test_tramos():
 
 def test_recorrido_suma_sus_paradas():
     recorrido = (
-        Recorrido(MOMENTO)
+        Recorrido(PARTIDA, MOMENTO)
         .agregar_parada(plaza("A", 0), TramoAPie(100))
         .agregar_parada(Plaza("B", 100, 0, 45, 200, True), TramoEnTransporte(500))
     )
@@ -112,23 +115,40 @@ def test_recorrido_suma_sus_paradas():
 
 
 def test_agregar_parada_no_modifica_el_original():
-    original = Recorrido(MOMENTO)
+    original = Recorrido(PARTIDA, MOMENTO)
     nuevo = original.agregar_parada(plaza("A", 0), TramoAPie(100))
     assert original.paradas == ()
     assert nombres(nuevo) == ["A"]
 
 
+def test_recorrido_conoce_su_partida_y_donde_esta():
+    recorrido = Recorrido(PARTIDA, MOMENTO)
+    assert recorrido.lugar_actual() is PARTIDA
+    a = plaza("A", 100)
+    assert recorrido.agregar_parada(a, TramoAPie(100)).lugar_actual() is a
+    assert recorrido.agregar_parada(a, TramoAPie(100)).partida is PARTIDA
+
+
 # ---------- Criterio ----------
 
-def test_minima_caminata_va_al_mas_cercano():
-    actual = plaza("Actual", 0)
-    cerca, lejos = plaza("Cerca", 300), plaza("Lejos", 900)
-    assert MinimaCaminata().elegir_siguiente(actual, [lejos, cerca]) is cerca
+def test_minima_caminata_cuesta_los_metros_caminados():
+    recorrido = (
+        Recorrido(PARTIDA, MOMENTO)
+        .agregar_parada(plaza("A", 300), TramoAPie(300))
+        .agregar_parada(plaza("B", 900), TramoEnTransporte(600))
+    )
+    assert MinimaCaminata().costo(recorrido) == 300
+
+
+def test_costo_de_ir_suma_el_tramo_y_desempata_por_distancia():
+    recorrido = Recorrido(PARTIDA, MOMENTO)
+    assert costo_de_ir(recorrido, plaza("A", 300), MinimaCaminata()) == (300, 300)
+    assert costo_de_ir(recorrido, plaza("B", 900), MinimaCaminata()) == (0, 900)
 
 
 def test_mejor_recorrido_es_el_que_menos_camina():
-    camina_mucho = Recorrido(MOMENTO).agregar_parada(plaza("P", 0), TramoAPie(300))
-    camina_poco = Recorrido(MOMENTO).agregar_parada(plaza("P", 0), TramoAPie(50))
+    camina_mucho = Recorrido(PARTIDA, MOMENTO).agregar_parada(plaza("P", 0), TramoAPie(300))
+    camina_poco = Recorrido(PARTIDA, MOMENTO).agregar_parada(plaza("P", 0), TramoAPie(50))
     assert mejor_recorrido([camina_mucho, camina_poco], MinimaCaminata()) is camina_poco
 
 
@@ -146,11 +166,39 @@ def test_respeta_el_tiempo_disponible():
     assert len(recorrido.paradas) < len(catalogo)
 
 
-def test_nunca_camina_mas_de_400_m_seguidos():
+def test_minimiza_la_caminata_ejemplo_del_profesor():
+    # A 390 m a pie y después B en transporte caminaría 390 m; al revés, 0 m
+    recorrido = planificar_simple((plaza("A", 390), plaza("B", 800)), 300)
+    assert nombres(recorrido) == ["B", "A"]
+    assert recorrido.metros_caminados_total() == 0
+
+
+def test_evita_caminar_cuando_hay_transporte():
+    # antes daba A, B, C con 320 m caminados; ahora camina menos
     recorrido = planificar_simple((plaza("A", 300), plaza("B", 900), plaza("C", 920)), 300)
-    assert nombres(recorrido) == ["A", "B", "C"]
-    assert recorrido.metros_caminados_total() == 300 + 20  # A-B (600 m) va en transporte
-    assert all(parada.tramo.metros_caminados() <= 400 for parada in recorrido.paradas)
+    assert nombres(recorrido) == ["B", "A", "C"]
+    assert recorrido.metros_caminados_total() == 0
+
+
+def test_empate_de_costo_no_depende_del_orden_del_catalogo():
+    lejos, cerca = plaza("Lejos", 900), plaza("Cerca", 500)  # los dos en transporte: 0 m
+    assert nombres(planificar_simple((lejos, cerca), 300)) == nombres(planificar_simple((cerca, lejos), 300))
+    assert nombres(planificar_simple((lejos, cerca), 300))[0] == "Cerca"
+
+
+def test_la_partida_no_se_visita_aunque_este_en_el_catalogo():
+    recorrido = planificar_simple((PARTIDA, plaza("A", 100)), 120)
+    assert nombres(recorrido) == ["A"]
+
+
+def test_un_criterio_nuevo_solo_implementa_costo():
+    class MenosPlata(CriterioDeCalidad):
+        def costo(self, recorrido):
+            return recorrido.costo_total()
+
+    catalogo = (plaza("Cara", 100, costo=500), plaza("Barata", 900, costo=0))
+    recorrido = planificar(PARTIDA, MOMENTO, 20, catalogo, MenosPlata())
+    assert nombres(recorrido) == ["Barata"]
 
 
 def test_si_el_elegido_no_entra_sigue_con_otro():

@@ -442,3 +442,42 @@ modo oscuro y celular.
 **Límite que hay que saber explicar:** el programa decide con distancias en línea recta, y el
 mapa solo dibuja ese mismo recorrido por las calles. Desde el Cerro, 4,8 km en línea recta son
 11,6 km por la calle.
+
+---
+
+### 2026-11-17 — Cambio de requisito del profesor (Hito 2)
+
+**Se pidió:** implementar los dos cambios de diseño del profesor:
+
+1. que el criterio tenga una sola medida, `costo(recorrido)`, y que `planificar` elija el
+   próximo lugar con esa medida;
+2. que el `Recorrido` guarde su partida y que `planificar` la excluya del catálogo.
+
+También preparar la explicación de dos puntos para la defensa.
+
+**Error de diseño que señaló el profesor y que venía de la IA:** el 2026-11-10 la IA cambió
+`elegir_siguiente` a "el más cercano" y dejó `costo` contando metros caminados. Quedaron dos
+ideas distintas de "bueno" en el mismo criterio, y `costo` no lo usaba `planificar`. La IA lo
+presentó como resuelto sin notar la contradicción con el nombre "mínima caminata". La regla de
+no visitar la partida también la había dejado la IA en `armar_recorrido.py`, en vez de en
+`planificar`.
+
+**Devolvió:**
+
+- `CriterioDeCalidad` quedó solo con `costo`.
+- Se agregó la función `costo_de_ir`, que arma el recorrido candidato y devuelve
+  `(costo, distancia)`.
+- `planificar` elige con `min(..., key=...)` y descarta la partida.
+- `Recorrido` sumó `partida` y `lugar_actual()`, así que `planificar` ya no necesita una
+  variable `actual`.
+- Se sacó el filtro de `armar_recorrido.py`.
+- Hay 6 tests nuevos, y los dos que cambiaron muestran que el recorrido camina menos.
+
+**Se verificó:** las cinco predicciones se anotaron antes de ejecutar y coincidieron. Pasan 25
+tests. El UML y la tabla de funciones de `DISENO.md` coinciden con el código, según un chequeo
+automático.
+
+**A tener en cuenta:** con este criterio vuelven los recorridos que cruzan la ciudad (desde
+Plaza Independencia, 7,1 km para caminar 0 m), que el usuario había marcado como raros el
+2026-11-10. Es lo que mide "mínima caminata" de verdad. En `DISENO.md` quedó como límite, con
+la aclaración de que otro criterio que mida otra cosa no requiere tocar `planificar`.

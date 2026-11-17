@@ -72,23 +72,24 @@ classDiagram
 
     class Recorrido {
         <<inmutable>>
+        +partida: Lugar
         +momento_inicio: Momento
         +paradas: tuple
         +agregar_parada(lugar, tramo) Recorrido
+        +lugar_actual() Lugar
         +metros_caminados_total() int
         +duracion_total_min() int
         +costo_total() float
     }
     Recorrido "1" *-- "0..*" Parada : paradas
     Recorrido "*" --> "1" Momento : momento_inicio
+    Recorrido "*" --> "1" Lugar : partida
 
     class CriterioDeCalidad {
         <<abstract>>
-        +elegir_siguiente(actual, disponibles) Lugar*
         +costo(recorrido) float*
     }
     class MinimaCaminata {
-        +elegir_siguiente(actual, disponibles) Lugar
         +costo(recorrido) float
     }
     CriterioDeCalidad <|-- MinimaCaminata
@@ -99,6 +100,7 @@ Además hay funciones puras fuera de las clases:
 | Función | Qué hace |
 |---|---|
 | `planificar(partida, momento, tiempo_disponible_min, catalogo, criterio)` | Arma el `Recorrido` |
+| `costo_de_ir(recorrido, lugar, criterio)` | Cuánto costaría el recorrido si el próximo fuera `lugar`, y la distancia para desempatar |
 | `lugares_visitables(catalogo, momento)` | Deja los lugares accesibles y disponibles (perezosa) |
 | `tramo_entre(origen, destino)` | Hasta 400 m, `TramoAPie`; más, `TramoEnTransporte` |
 | `distancia(a, b)` | Distancia en línea recta, en metros |
@@ -142,20 +144,20 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 
 ### Funciones
 
-- **Funciones puras donde se calcula.** `planificar`, `distancia`, `tramo_entre`,
-  `lugares_visitables`, `mejor_recorrido` y los totales de `Recorrido` no modifican nada ni
-  dependen de nada externo.
+- **Funciones puras donde se calcula.** `planificar`, `costo_de_ir`, `distancia`,
+  `tramo_entre`, `lugares_visitables`, `mejor_recorrido` y los totales de `Recorrido` no
+  modifican nada ni dependen de nada externo.
 - **`planificar` es una función, no una clase.** Recibe todo lo que necesita y devuelve un
   `Recorrido`. Una clase `Planificador` con un solo método no agregaba nada.
-- **Orden superior.** `min(disponibles, key=...)`, `min(recorridos, key=criterio.costo)` y
-  `filter(...)` reciben funciones como argumento.
+- **Orden superior.** `min(disponibles, key=lambda lugar: costo_de_ir(...))`,
+  `min(recorridos, key=criterio.costo)` y `filter(...)` reciben funciones como argumento.
 - **Evaluación perezosa.** `lugares_visitables` devuelve un `filter`, que no evalúa ningún
   lugar hasta que se lo recorre (hay un test), y los totales usan expresiones generadoras.
   No se escribieron generadores con `yield` porque el algoritmo no los necesita.
 - **Un `while` en `planificar`.** Va armando una estructura paso a paso, justo el caso en
   que el material del curso dice que no conviene el estilo funcional. En cada vuelta saca
-  de `disponibles` el lugar que eligió el criterio y, si entra en el tiempo que queda, lo
-  agrega. Si no entra, sigue con los demás. Lo único que muta es esa lista local; cada
+  de `disponibles` el lugar que menos le suma al costo y, si entra en el tiempo que queda,
+  lo agrega. Si no entra, sigue con los demás. Lo único que muta es esa lista local; cada
   parada produce un `Recorrido` nuevo.
 - **Efectos separados del cálculo.** `Momento` se inyecta y nunca se lee el reloj. Las
   coordenadas son datos fijos. Pantalla y teclado viven solo en `armar_recorrido.py`,
@@ -163,18 +165,22 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
 
 ### El criterio
 
-- **Qué significa "mejor" y quién lo decide.** Lo decide el `CriterioDeCalidad`, no
-  `planificar`. Con `MinimaCaminata`, es mejor el recorrido con menos metros caminados.
-  `mejor_recorrido(recorridos, criterio)` compara recorridos ya calculados.
-- **Cómo elige `MinimaCaminata`.** En cada paso va al lugar más cercano. Si queda a 400 m o
-  menos se camina; si no, se va en transporte. Así nunca se caminan más de 400 m seguidos y
-  el recorrido no da vueltas por la ciudad.
-- **Límites conocidos de este criterio.** No busca el óptimo (la letra no lo pide), así que
-  no siempre da el mínimo total de metros: en un caso con lugares a 300, 900 y 920 m camina
-  320 m, cuando ir primero en transporte daba 0 m. Y al comparar recorridos, uno sin paradas
-  gana con 0 m.
-- **Cambiar el criterio no toca el algoritmo.** Se agrega una subclase de
-  `CriterioDeCalidad` y se le pasa a `planificar`.
+- **Qué significa "mejor" y quién lo decide.** Lo decide el `CriterioDeCalidad`, con una
+  sola pregunta: `costo(recorrido)`. Con `MinimaCaminata`, el costo son los metros
+  caminados. `planificar` usa esa misma medida para elegir cada paso, y `mejor_recorrido`
+  para comparar recorridos ya calculados: no hay dos ideas distintas de "bueno".
+- **Cómo se elige el próximo lugar.** Para cada lugar disponible, `costo_de_ir` arma el
+  recorrido candidato con `agregar_parada` y le pregunta su costo al criterio. Gana el que
+  menos cuesta; si empatan, el más cercano, así el resultado no depende del orden del
+  catálogo.
+- **Límites conocidos.** No busca el óptimo (la letra no lo pide): decide paso a paso.
+  Como el transporte cuenta 0 m, prefiere ir lejos en transporte antes que caminar un poco,
+  y el recorrido puede cruzar la ciudad (desde Plaza Independencia hace 7,1 km para caminar
+  0 m). Es consecuencia de medir solo la caminata: si se quisieran recorridos más cortos,
+  alcanza con otro criterio que mida otra cosa, sin tocar `planificar`. Al comparar, un
+  recorrido sin paradas gana con 0 m.
+- **Cambiar el criterio no toca el algoritmo.** Un criterio nuevo solo implementa `costo`
+  y se le pasa a `planificar`. Hay un test con un criterio que minimiza la plata gastada.
 
 ### Datos
 
@@ -190,9 +196,11 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
   Se puede revisar si lo justifica el cambio de requisito.
 - **Armar varios recorridos con un generador y quedarse con el mejor:** funcionaba, pero
   complicaba de más algo que la letra no pide.
-- **Elegir el lugar que obliga a caminar menos metros:** caminaba 0 m, pero como el
-  transporte cuenta 0 m, cruzaba la ciudad para no caminar 150 m. Saliendo de Plaza
-  Independencia recorría 7,1 km; yendo al más cercano son 1,1 km.
+- **Elegir siempre el lugar más cercano:** daba recorridos cortos (1,1 km desde Plaza
+  Independencia), pero no minimizaba la caminata: con A a 390 m y B a 800 m caminaba 390 m,
+  cuando ir primero a B en transporte daba 0 m. Además, "más cercano" y "menos metros" eran
+  dos ideas distintas de "bueno" en el mismo criterio. Se reemplazó en el cambio de
+  requisito.
 - **Menor esfuerzo (un minuto a pie pesa como tres en transporte):** caminaba menos, pero
   seguía yendo y volviendo (2,1 km) y era más difícil de explicar.
 - **Clases planas sin `frozen`:** se probaron, pero dejaban sin inmutabilidad, que la letra
@@ -221,3 +229,58 @@ Todo el modelo está en `ruta_viva.py`; los tests, en `test_ruta_viva.py`.
   porque el anterior hacía recorridos que cruzaban la ciudad.
 - La inmutabilidad y `ABC` se quitaron y se volvieron a poner: sacarlas fue un error,
   documentado en `BITACORA_IA.md`.
+- `Recorrido` sumó `partida` y `lugar_actual()`, y `CriterioDeCalidad` quedó solo con
+  `costo`. Ver la sección siguiente.
+
+## Cambio de requisito (Hito 2)
+
+El profesor pidió dos cambios de diseño.
+
+**1. Que el criterio mida lo mismo que dice minimizar.** `MinimaCaminata` tenía dos ideas de
+"bueno": `elegir_siguiente` iba al más cercano y `costo` contaba metros caminados, y
+`planificar` nunca usaba `costo`. Por eso "mínima caminata" no minimizaba la caminata.
+
+- Se sacó `elegir_siguiente`: el criterio tiene una sola pregunta, `costo(recorrido)`.
+- Se agregó `costo_de_ir(recorrido, lugar, criterio)`, que arma el recorrido candidato con
+  `agregar_parada` y devuelve `(costo, distancia)`.
+- `planificar` elige con `min(disponibles, key=lambda lugar: costo_de_ir(recorrido, lugar,
+  criterio))`.
+
+**2. Que el `Recorrido` conozca su partida y que `planificar` la excluya.** El primer tramo
+salía de un lugar que el `Recorrido` no guardaba, y la regla "la partida no se visita" estaba
+en `armar_recorrido.py`.
+
+- `Recorrido` tiene `partida` y `lugar_actual()`. `planificar` ya no lleva una variable
+  `actual` aparte: se lo pregunta al recorrido.
+- `planificar` descarta la partida del catálogo por su cuenta, y se sacó ese filtro de
+  `armar_recorrido.py`.
+
+**Tests.** Se agregaron el ejemplo del profesor (A a 390 m y B a 800 m dan [B, A] con 0 m),
+la partida dentro del catálogo, el desempate que no depende del orden, un criterio nuevo que
+solo implementa `costo`, y `Recorrido.lugar_actual`. Cambiaron dos tests, y en los dos el
+recorrido ahora camina menos:
+
+- el que usaba `elegir_siguiente` pasó a probar `costo`;
+- el de A a 300 m, B a 900 m y C a 920 m pasó de [A, B, C] con 320 m a [B, A, C] con 0 m.
+
+Las predicciones se anotaron antes de ejecutar y las cinco coincidieron (ver
+`PREDICCIONES.md`).
+
+### Dos preguntas para la defensa
+
+- **La disponibilidad se calcula una sola vez, con el momento de salida.** Un museo abierto
+  solo a la mañana sigue contando como disponible aunque se llegue de tarde. Se dejó así
+  porque el modelo de tiempo son tres franjas (mañana, tarde, noche) y no un reloj: para
+  saber en qué franja se llega a cada lugar habría que convertir los minutos del recorrido en
+  horas, decidir a qué hora empieza y termina cada franja y recalcular la disponibilidad en
+  cada paso. Es un cambio posible, pero agranda el modelo, y la letra no lo pide. Queda como
+  límite conocido.
+- **Por qué Museo, Restaurante y ParadaDeDescanso son clases separadas si hoy no agregan
+  comportamiento.** Son tipos distintos del dominio y pasan el test de "es un tipo de". Cada
+  uno es el lugar donde va a vivir su propia regla cuando aparezca: un restaurante que solo
+  cuenta al mediodía, o una parada de descanso que el planificador inserta cuando se camina
+  mucho. Con clases separadas, ese cambio toca una sola clase. La alternativa honesta es un
+  atributo `tipo` en `LugarConHorario` y en `Plaza`: es menos código hoy, pero cada regla
+  futura terminaría en un `if tipo == ...`, que es lo que el curso pide evitar con
+  polimorfismo. Para `ParadaDeDescanso` se reconoce que hoy compite como cualquier otro
+  lugar y no se inserta cuando hace falta descansar.

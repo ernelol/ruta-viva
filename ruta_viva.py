@@ -154,12 +154,17 @@ class Parada:
 
 @dataclass(frozen=True)
 class Recorrido:
+    partida: Lugar
     momento_inicio: Momento
     paradas: tuple = ()  # tupla: con frozen, una lista igual aceptaría append
 
     def agregar_parada(self, lugar, tramo):
         """Crea la parada y devuelve un recorrido nuevo; este no cambia."""
-        return Recorrido(self.momento_inicio, self.paradas + (Parada(lugar, tramo),))
+        return Recorrido(self.partida, self.momento_inicio, self.paradas + (Parada(lugar, tramo),))
+
+    def lugar_actual(self):
+        """Dónde está el recorrido: la última parada, o la partida si todavía no hay ninguna."""
+        return self.paradas[-1].lugar if self.paradas else self.partida
 
     def metros_caminados_total(self):
         return sum(parada.tramo.metros_caminados() for parada in self.paradas)
@@ -174,28 +179,27 @@ class Recorrido:
 # ---------- Criterio: qué le importa a la persona ----------
 
 class CriterioDeCalidad(ABC):
-    @abstractmethod
-    def elegir_siguiente(self, actual: Lugar, disponibles: list) -> Lugar:
-        """Cuál lugar visitar después de `actual`."""
+    """Una sola pregunta: cuánto le cuesta un recorrido a la persona. Menos es mejor."""
 
     @abstractmethod
-    def costo(self, recorrido: Recorrido) -> float:
-        """Cuánto le cuesta el recorrido a la persona: menos es mejor."""
+    def costo(self, recorrido: Recorrido) -> float: ...
 
 
 class MinimaCaminata(CriterioDeCalidad):
-    """Va siempre al lugar más cercano. Si queda a más de 400 m se va en transporte, así
-    nunca se caminan más de 400 m seguidos y el recorrido no da vueltas por la ciudad."""
-
-    def elegir_siguiente(self, actual, disponibles):
-        return min(disponibles, key=lambda lugar: distancia(actual, lugar))
-
     def costo(self, recorrido):
         return recorrido.metros_caminados_total()
 
 
 def mejor_recorrido(recorridos, criterio: CriterioDeCalidad) -> Recorrido:
     return min(recorridos, key=criterio.costo)
+
+
+def costo_de_ir(recorrido: Recorrido, lugar: Lugar, criterio: CriterioDeCalidad) -> tuple:
+    """Cuánto costaría el recorrido si el próximo lugar fuera `lugar`. Si hay empate, gana el
+    más cercano, así el resultado no depende del orden del catálogo."""
+    actual = recorrido.lugar_actual()
+    candidato = recorrido.agregar_parada(lugar, tramo_entre(actual, lugar))
+    return (criterio.costo(candidato), distancia(actual, lugar))
 
 
 # ---------- Planificar: funciones puras ----------
@@ -207,22 +211,21 @@ def lugares_visitables(catalogo, momento):
 
 def planificar(partida: Lugar, momento: Momento, tiempo_disponible_min: int,
                catalogo: tuple, criterio: CriterioDeCalidad) -> Recorrido:
-    """En cada paso el criterio elige el próximo lugar. Si no entra en el tiempo que
-    queda, se descarta y se sigue con los demás. No busca el óptimo."""
+    """En cada paso va al lugar que menos le suma al costo del recorrido. Si no entra en el
+    tiempo que queda, se descarta y se sigue con los demás. La partida nunca se visita.
+    No busca el óptimo."""
     if tiempo_disponible_min < 0:
         raise ValueError("el tiempo disponible no puede ser negativo")
 
-    disponibles = list(lugares_visitables(catalogo, momento))
-    recorrido = Recorrido(momento)
-    actual = partida
+    disponibles = [lugar for lugar in lugares_visitables(catalogo, momento) if lugar != partida]
+    recorrido = Recorrido(partida, momento)
 
     while disponibles:
-        siguiente = criterio.elegir_siguiente(actual, disponibles)
+        siguiente = min(disponibles, key=lambda lugar: costo_de_ir(recorrido, lugar, criterio))
         disponibles.remove(siguiente)
-        tramo = tramo_entre(actual, siguiente)
+        tramo = tramo_entre(recorrido.lugar_actual(), siguiente)
         duracion = tramo.duracion_min() + siguiente.duracion_visita_min
         if recorrido.duracion_total_min() + duracion <= tiempo_disponible_min:
             recorrido = recorrido.agregar_parada(siguiente, tramo)
-            actual = siguiente
 
     return recorrido

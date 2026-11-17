@@ -178,3 +178,64 @@ llevaría a 72 min y no entra, y los siguientes tampoco. Espero **[Lugar 1, Luga
 **Resultado real:** `['Lugar 1', 'Lugar 2', 'Lugar 3']`, 54 min, 600 m.
 
 **¿Coincidió?:** Sí.
+
+---
+
+# Cambio de requisito (Hito 2)
+
+Predicciones anotadas antes de cambiar el código. Con el cambio, `planificar` elige como
+próximo el lugar que menos le suma a `criterio.costo(recorrido)` y desempata por distancia.
+Con `MinimaCaminata`, el costo son los metros caminados: un tramo de más de 400 m va en
+transporte y suma 0 m.
+
+## Ejemplo del profesor: partida en 0, A a 390 m, B a 800 m
+
+**Predicción:** desde 0, A suma 390 m (a pie) y B suma 0 m (transporte): va a B. Desde B, A
+queda a 410 m: transporte, suma 0 m. Espero **[B, A] con 0 m caminados**. Antes daba [A, B]
+con 390 m.
+
+**Resultado real:** `['B', 'A']`, 0 m.
+
+**¿Coincidió?:** Sí.
+
+## A a 300 m, B a 900 m, C a 920 m
+
+**Predicción:** desde 0, A suma 300 m; B y C suman 0 m y desempata la distancia: B. Desde B,
+C está a 20 m (a pie, suma 20) y A a 600 m (transporte, 0): A. Desde A, C está a 620 m:
+transporte. Espero **[B, A, C] con 0 m**. Antes daba [A, B, C] con 320 m.
+
+**Resultado real:** `['B', 'A', 'C']`, 0 m.
+
+**¿Coincidió?:** Sí.
+
+## 10 lugares cada 200 m, 15 min de visita, 60 minutos
+
+**Predicción:** desde 0, Lugar 1 y 2 se caminan (suman 200 y 400 m) y del Lugar 3 en adelante
+van en transporte (suman 0): el más cercano de esos es el Lugar 3 (600 m: 2 min de viaje + 15
+= 17). Desde ahí, el mismo razonamiento lleva al Lugar 6 (34 min) y al Lugar 9 (51 min).
+Desde el Lugar 9, lo que va en transporte necesita 18 min o más y lo que se camina también,
+así que todo se saltea. Espero **[Lugar 3, Lugar 6, Lugar 9], 51 min y 0 m**. Antes daba
+[Lugar 1, 2, 3], 54 min y 600 m.
+
+**Resultado real:** `['Lugar 3', 'Lugar 6', 'Lugar 9']`, 51 min, 0 m.
+
+**¿Coincidió?:** Sí.
+
+## Catálogo que incluye la partida
+
+**Predicción:** `planificar` saca la partida del catálogo, así que no aparece como parada. Con
+partida en 0 y catálogo (partida, A a 100 m), espero **[A]**. Antes daba [partida, A].
+
+**Resultado real:** `['A']`.
+
+**¿Coincidió?:** Sí.
+
+## Montevideo: Plaza Independencia, mañana, sol, 180 minutos
+
+**Predicción:** este resultado ya se conocía. Es el que daba el criterio de "menos metros a
+pie" en la comparación del 2026-11-10, porque es el mismo criterio. Espero **Museo Gurvich →
+Mercado del Puerto → Banco de descanso → Parque Rodó → Playa Pocitos, con 0 m caminados**.
+
+**Resultado real:** Museo Gurvich → Mercado del Puerto → Banco de descanso → Parque Rodó → Playa Pocitos, 0 m.
+
+**¿Coincidió?:** Sí.

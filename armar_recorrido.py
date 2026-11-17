@@ -101,8 +101,7 @@ def main():
     momento = Momento(franja, clima)
     minutos = _pedir_minutos()
 
-    catalogo = tuple(lugar for lugar in CATALOGO_MONTEVIDEO if lugar is not partida)
-    recorrido = planificar(partida, momento, minutos, catalogo, MinimaCaminata())
+    recorrido = planificar(partida, momento, minutos, CATALOGO_MONTEVIDEO, MinimaCaminata())
 
     print(f"\nRecorrido desde {partida.nombre}:")
     if not recorrido.paradas:
