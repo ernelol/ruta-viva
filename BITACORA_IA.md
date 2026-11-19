@@ -481,3 +481,18 @@ automático.
 Plaza Independencia, 7,1 km para caminar 0 m), que el usuario había marcado como raros el
 2026-11-10. Es lo que mide "mínima caminata" de verdad. En `DISENO.md` quedó como límite, con
 la aclaración de que otro criterio que mida otra cosa no requiere tocar `planificar`.
+
+---
+
+### 2026-11-19 — Comentarios detallados en el código
+
+**Se pidió:** comentar todo el código en detalle, para poder ubicarse y explicar cualquier parte
+durante la defensa.
+
+**Devolvió:** comentarios en lenguaje simple en `ruta_viva.py`, `test_ruta_viva.py` y
+`armar_recorrido.py`. Explican qué hace cada clase y función, por qué se eligió cada herramienta
+(`ABC`, `frozen`, tuplas, `__post_init__`, `min` con `key`, `filter`) y cada paso del `while` de
+`planificar`. En los tests, qué prueba cada uno.
+
+**Se verificó:** el código no cambió. Se comparó la estructura de cada archivo antes y después,
+ignorando comentarios y docstrings, y es idéntica. Los 25 tests pasan.

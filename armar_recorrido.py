@@ -6,6 +6,9 @@ duraciones son DATOS DE EJEMPLO inventados, no información real de esos lugares
 de Sarandí es ficticio.
 
 Correr con: .venv/bin/python3 armar_recorrido.py
+
+Este archivo es la única parte que usa pantalla y teclado (print e input). El cálculo
+está todo en ruta_viva.py, que no imprime nada: así los efectos quedan separados del cálculo.
 """
 
 import math
@@ -28,23 +31,33 @@ from ruta_viva import (
     planificar,
 )
 
+# Plaza Independencia es el punto (0, 0) del plano. Todas las posiciones se miden desde ahí.
 LAT_ORIGEN, LON_ORIGEN = -34.9064755, -56.1997577  # Plaza Independencia
-RADIO_TIERRA_M = 6_371_000
+RADIO_TIERRA_M = 6_371_000  # radio de la Tierra en metros
 
 
+# El guion bajo al principio del nombre indica que es una función interna de este archivo.
 def _a_metros(lat, lon):
     """Pasa lat/lon a metros respecto del origen. Corrige por el coseno de la latitud
     porque un grado de longitud mide menos que uno de latitud. Sirve dentro de una ciudad."""
+    # x: cuántos metros al este (positivo) u oeste (negativo) de Plaza Independencia.
     x = math.radians(lon - LON_ORIGEN) * math.cos(math.radians(LAT_ORIGEN)) * RADIO_TIERRA_M
+    # y: cuántos metros al norte (positivo) o sur (negativo).
     y = math.radians(lat - LAT_ORIGEN) * RADIO_TIERRA_M
     return x, y
 
 
 def _lugar(clase, nombre, lat, lon, **datos):
+    """Crea un lugar de la clase indicada (Museo, Plaza...) a partir de su latitud y longitud.
+
+    **datos recibe el resto de los atributos por nombre (duracion_visita_min, costo, etc.)
+    y se los pasa tal cual a la clase.
+    """
     x, y = _a_metros(lat, lon)
     return clase(nombre=nombre, x=x, y=y, **datos)
 
 
+# El catálogo: los lugares que se pueden visitar. Es una tupla para que no se pueda modificar.
 CATALOGO_MONTEVIDEO = (
     _lugar(Plaza, "Plaza Independencia", -34.9064755, -56.1997577,
            duracion_visita_min=15, costo=0, es_accesible=True),
@@ -59,6 +72,7 @@ CATALOGO_MONTEVIDEO = (
     _lugar(Restaurante, "Mercado del Puerto", -34.9056495, -56.2117422,
            duracion_visita_min=60, costo=400, es_accesible=True,
            horario_apertura=MANIANA, horario_cierre=NOCHE),
+    # No accesible (dato de ejemplo): nunca entra en un recorrido.
     _lugar(Mirador, "Fortaleza del Cerro", -34.8883550, -56.2599252,
            duracion_visita_min=30, costo=0, es_accesible=False),
     _lugar(Plaza, "Parque Rodó", -34.9100822, -56.1697776,
@@ -74,16 +88,19 @@ CATALOGO_MONTEVIDEO = (
 def _elegir(mensaje, opciones):
     """Muestra (valor, etiqueta) numerados y devuelve el valor elegido."""
     print(mensaje)
+    # enumerate numera las opciones desde 1. El "_" es el valor, que acá no uso.
     for numero, (_, etiqueta) in enumerate(opciones, start=1):
         print(f"  {numero}. {etiqueta}")
+    # Pregunta hasta que la persona escriba un número válido.
     while True:
         respuesta = input("Elegí un número: ").strip()
         if respuesta.isdigit() and 1 <= int(respuesta) <= len(opciones):
-            return opciones[int(respuesta) - 1][0]
+            return opciones[int(respuesta) - 1][0]  # -1 porque la tupla empieza en 0
         print("Opción inválida, probá de nuevo.")
 
 
 def _pedir_minutos():
+    """Pregunta cuántos minutos tiene la persona, hasta que escriba un número."""
     while True:
         respuesta = input("¿Cuántos minutos tenés disponibles? ").strip()
         if respuesta.isdigit():
@@ -95,14 +112,18 @@ def main():
     print("=== Armar un recorrido por Montevideo ===")
     print("Coordenadas: © OpenStreetMap contributors (ODbL). El resto son datos de ejemplo.\n")
 
+    # 1. La persona elige desde dónde sale, el momento y cuánto tiempo tiene.
     partida = _elegir("¿Desde dónde arrancás?", [(lugar, lugar.nombre) for lugar in CATALOGO_MONTEVIDEO])
     franja = _elegir("Momento del día:", [(MANIANA, "Mañana"), (TARDE, "Tarde"), (NOCHE, "Noche")])
     clima = _elegir("Clima:", [(SOLEADO, "Soleado"), (NUBLADO, "Nublado"), (LLUVIA, "Lluvia")])
     momento = Momento(franja, clima)
     minutos = _pedir_minutos()
 
+    # 2. El cálculo lo hace ruta_viva.py. La partida puede estar en el catálogo:
+    #    planificar ya sabe que no tiene que visitarla.
     recorrido = planificar(partida, momento, minutos, CATALOGO_MONTEVIDEO, MinimaCaminata())
 
+    # 3. Muestro el resultado.
     print(f"\nRecorrido desde {partida.nombre}:")
     if not recorrido.paradas:
         print("  (no entró ningún lugar en el tiempo disponible)")
@@ -111,9 +132,10 @@ def main():
         print(f"  {numero}. {parada.lugar.nombre} ({como}, {parada.tramo.distancia_m} m)")
     print(f"\nTotal caminado: {recorrido.metros_caminados_total()} m")
     print(f"Duración total: {recorrido.duracion_total_min()} min")
-    print(f"Costo total: ${recorrido.costo_total():.0f}")
+    print(f"Costo total: ${recorrido.costo_total():.0f}")  # :.0f muestra sin decimales
 
 
-
+# Esto hace que main() se ejecute solo cuando corro este archivo directamente,
+# y no cuando otro archivo lo importa (por ejemplo, la demo importa CATALOGO_MONTEVIDEO).
 if __name__ == "__main__":
     main()
